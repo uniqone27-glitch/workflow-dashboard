@@ -11,7 +11,7 @@ export const ROLES = {
 export const STATUSES = ['요청', '작업중', '완료'];
 export const PRIORITIES = ['긴급', '높음', '보통', '낮음'];
 export const PRIORITY_RANK = { 긴급: 0, 높음: 1, 보통: 2, 낮음: 3 };
-export const PRODUCT_KINDS = ['신제품', '리뉴얼', '패키지 변경', '기존 제품'];
+export const PRODUCT_KINDS = ['신제품', '리뉴얼', '패키지 변경'];
 export const LAUNCH_STATES = ['준비 전', '준비중', '론칭 준비 완료', '론칭 완료'];
 export const NEED_STATES = ['미정', '필요', '불필요'];
 

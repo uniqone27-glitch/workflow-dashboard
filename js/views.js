@@ -161,7 +161,7 @@ function requestView(route, el) {
       <div class="grow"></div>
       ${drafts.length ? `<button class="btn" id="drafts">임시저장 ${drafts.length}</button>` : ''}
       <button class="btn" id="excel">엑셀 다운로드</button>
-      ${kind && can.createRequest(kind) ? `<button class="btn btn-primary" id="new">+ 새 ${KINDS[kind].short} 요청</button>` : ''}
+      ${kind && can.createRequest(kind) ? `<button class="btn btn-primary" id="new">+ 새 ${kind === 'package' ? '작업' : KINDS[kind].short} 요청</button>` : ''}
     </div>
     <div class="filters">
       ${!kind ? `<select class="input" data-f="kind">${options([['package', '패키지 디자인'], ['shoot', '촬영'], ['design', '디자인 작업'], ['brand', '브랜드팀 요청 전체']], f.kind, { empty: '업무 구분 전체' })}</select>` : ''}

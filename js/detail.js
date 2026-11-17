@@ -228,7 +228,7 @@ function renderRequest(panel, kind, id) {
     package: [
       ['디자인 유형', esc(r.design_type) + (r.design_type_etc ? ` (${esc(r.design_type_etc)})` : '')],
       ['패키지 규격', nl(r.package_spec)], ['필수 기재 문구', nl(r.required_text), true], ['인쇄 유의사항', nl(r.print_notes), true],
-      ['디자인 레퍼런스', linkify(r.reference_url), true], ['추가 요청사항', nl(r.request_note), true],
+      ['디자인 레퍼런스 URL (카피 제품)', linkify(r.reference_url), true], ['추가 요청사항', nl(r.request_note), true],
     ],
     shoot: [
       ['촬영 목적', esc(r.purpose) + (r.purpose_etc ? ` (${esc(r.purpose_etc)})` : '')],

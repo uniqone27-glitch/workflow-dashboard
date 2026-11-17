@@ -153,7 +153,7 @@ function requestFields(kind, r, { create, multiType }) {
   const pr = `
     <label class="field"><span>우선순위 <b class="req">*</b></span><select class="input" name="priority" required>${options(PRIORITIES, r.priority || '보통')}</select></label>
     <label class="field"><span>희망 완료일 <b class="req">*</b></span><input class="input" type="date" name="due_date" required value="${esc(r.due_date || '')}"></label>`;
-  const files = `<label class="field wide"><span>${kind === 'package' ? '관련 파일 첨부' : '참고 이미지 첨부'}</span>
+  const files = `<label class="field wide"><span>${kind === 'package' ? '제품 이미지, 파일 첨부 <small class="muted">이미지는 제품 이미지로 등록되어 브랜드팀 요청서에도 함께 표시됩니다</small>' : '참고 이미지 첨부'}</span>
     <label class="dropzone"><input type="file" multiple data-reqfiles><span>파일 선택 (여러 개 가능)</span></label><div class="file-list" data-reqfiles-list></div></label>`;
 
   if (kind === 'package') return `
@@ -164,7 +164,7 @@ function requestFields(kind, r, { create, multiType }) {
       <label class="field wide"><span>패키지 규격</span><input class="input" name="package_spec" value="${esc(r.package_spec || '')}" placeholder="예: 1250 × 1250 × 120 mm, 골판지 5겹"></label>
       <label class="field wide"><span>필수 기재 문구</span><textarea class="input" rows="2" name="required_text">${esc(r.required_text || '')}</textarea></label>
       <label class="field wide"><span>인쇄 관련 유의사항</span><textarea class="input" rows="2" name="print_notes">${esc(r.print_notes || '')}</textarea></label>
-      <label class="field wide"><span>디자인 레퍼런스 URL</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>
+      <label class="field wide"><span>디자인 레퍼런스 URL(카피 제품 URL, ex 비아브 테이블은 피아바 가베 테이블을 카피한 상품으로 가베 테이블 링크 첨부)</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>
       ${create ? files : ''}
       <label class="field wide"><span>추가 요청사항</span><textarea class="input" rows="2" name="request_note">${esc(r.request_note || '')}</textarea></label>
     </div></fieldset>
@@ -385,7 +385,11 @@ export function openRequestForm(kind, opts = {}) {
         return r;
       });
       const created = await S.db.insert(table, rows);
-      for (const c of created) if (files.length) await uploadFiles(kind, c.id, 'reference', files);
+      // 패키지 요청: 이미지는 제품 이미지(모든 팀 공유)로, 그 외 파일은 각 요청의 첨부파일로 저장
+      const isImg = (f) => /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(f.name);
+      const reqFiles = kind === 'package' && pid ? files.filter((f) => !isImg(f)) : files;
+      if (kind === 'package' && pid && files.some(isImg)) await uploadFiles('product', pid, 'product_image', files.filter(isImg));
+      for (const c of created) if (reqFiles.length) await uploadFiles(kind, c.id, 'reference', reqFiles);
       if (opts.draft) await S.db.remove('drafts', { id: opts.draft.id }).catch(() => {});
       // 브랜드팀이 후속 업무를 만들면 '후속 진행'으로 표시
       if (pid && kind !== 'package' && can.launch() && launchOf(pid).followup === '미확인') {
