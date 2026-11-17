@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages } from './store.js';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls } from './store.js?v=202611172250';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, COMMON_SPECS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS } from './constants.js';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js';
-import { openDetail, openProduct, uploadFiles, productGallery } from './detail.js';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS } from './constants.js?v=202611172250';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611172250';
+import { openDetail, openProduct, uploadFiles, productGallery } from './detail.js?v=202611172250';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 function specInputs(list, specs = {}) {
@@ -146,6 +146,39 @@ async function requestCorrection(pid) {
   } catch (e) { toast(errMsg(e), 'error'); }
 }
 
+// ---------------------------------------------------------------- 촬영 참고 이미지: 기존 이미지 선택 / 새 업로드
+const isImgAtt = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(a.file_name || '');
+// 물류/발주팀이 올린 이미지: 제품 이미지 + 해당 제품 패키지 요청에 첨부된 이미지
+function logisticsImages(pid) {
+  if (!pid) return [];
+  const pkgIds = new Set(S.data.package_requests.filter((r) => r.product_id === pid).map((r) => r.id));
+  const seen = new Set();
+  return S.data.attachments.filter((a) => isImgAtt(a) && (
+    (a.entity_type === 'product' && a.entity_id === pid) || (a.entity_type === 'package' && pkgIds.has(a.entity_id))
+  )).filter((a) => !seen.has(a.storage_path) && seen.add(a.storage_path));
+}
+function shootRefField(r) {
+  const imgs = logisticsImages(r.product_id);
+  const mode = r.ref_mode || (imgs.length ? 'existing' : 'upload');
+  const picked = new Set(r.ref_existing || []);
+  return `<div class="field wide ref-field"><span>참고 이미지 첨부</span>
+    <select class="input" name="ref_mode" data-refmode>
+      ${options([['existing', '물류/발주팀 등록 이미지에서 선택'], ['upload', '새 이미지 업로드']], mode)}
+    </select>
+    <div data-ref-pane="existing" ${mode === 'existing' ? '' : 'hidden'}>
+      ${!r.product_id ? '<p class="muted small">먼저 제품을 선택하세요.</p>'
+        : imgs.length ? `<div class="ref-pick">${imgs.map((a) => `
+          <label class="ref-item"><input type="checkbox" data-multi name="ref_existing" value="${a.id}" ${picked.has(a.id) ? 'checked' : ''}>
+            <img data-src-path="${esc(a.storage_path)}" src="${esc(S.urls[a.storage_path] || '')}" alt=""><span>${esc(a.file_name)}</span></label>`).join('')}</div>
+          <p class="muted small">선택한 이미지는 다시 업로드하지 않고 원본 파일을 그대로 연결합니다.</p>`
+        : '<p class="muted small">이 제품에 물류/발주팀이 등록한 이미지가 없습니다. 「새 이미지 업로드」를 선택하세요.</p>'}
+    </div>
+    <div data-ref-pane="upload" ${mode === 'upload' ? '' : 'hidden'}>
+      <label class="dropzone"><input type="file" multiple accept="image/*" data-reqfiles><span>이미지 파일 선택 (여러 장 가능)</span></label><div class="file-list" data-reqfiles-list></div>
+    </div>
+  </div>`;
+}
+
 // ---------------------------------------------------------------- 요청 폼
 const MULTI_TYPE_HINT = '여러 개 선택하면 유형별로 업무가 각각 생성됩니다.';
 
@@ -180,13 +213,13 @@ function requestFields(kind, r, { create, multiType }) {
       <div class="field wide"><span>촬영 유형 <b class="req">*</b> <small class="muted">복수 선택</small></span>${checks('shoot_types', SHOOT_TYPES, r.shoot_types || [])}</div>
       <label class="field wide"><span>기타 촬영 유형</span><input class="input" name="shoot_types_etc" value="${esc(r.shoot_types_etc || '')}"></label>
       <label class="field"><span>촬영 장소</span><select class="input" name="location">${options(SHOOT_LOCATIONS, r.location, { empty: '선택' })}</select></label>
-      <label class="field"><span>장소 직접 입력</span><input class="input" name="location_etc" value="${esc(r.location_etc || '')}"></label>
+      <label class="field"><span>직접 입력(기타 선택 시)</span><input class="input" name="location_etc" value="${esc(r.location_etc || '')}"></label>
       <div class="field wide shoot-opts"><span>촬영 제품 옵션</span>${optNames.length ? checks('shoot_options', optNames, r.shoot_options || []) : '<small class="muted">등록된 옵션이 없습니다.</small>'}</div>
       <label class="field"><span>촬영 수량 (컷)</span><input class="input" type="number" min="0" name="quantity" value="${esc(r.quantity ?? '')}"></label>
       <label class="field"><span>촬영 희망일</span><input class="input" type="date" name="desired_shoot_date" value="${esc(r.desired_shoot_date || '')}"></label>
       <label class="field wide"><span>촬영 유의사항</span><textarea class="input" rows="2" name="caution">${esc(r.caution || '')}</textarea></label>
       <label class="field wide"><span>촬영 레퍼런스 URL</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>
-      ${create ? files : ''}
+      ${create ? shootRefField(r) : ''}
       <label class="field wide"><span>추가 요청사항</span><textarea class="input" rows="2" name="request_note">${esc(r.request_note || '')}</textarea></label>
     </div></fieldset>
     <fieldset><legend>일정 및 우선순위</legend><div class="form-grid">${pr}</div></fieldset>`;
@@ -286,6 +319,13 @@ export function openRequestForm(kind, opts = {}) {
     $('.pick [name=product_id]', body)?.addEventListener('change', () => {
       snapshot();
       if (kind === 'design' && state.productId) state.req.brand_id = product(state.productId)?.brand_id;
+      if (kind === 'shoot') {
+        // 제품이 바뀌면 참고 이미지 선택을 초기화 (이미지가 있으면 '기존 이미지 선택'이 기본)
+        delete state.req.ref_mode;
+        delete state.req.ref_existing;
+        const pk = product(state.productId)?.product_kind;
+        if (!state.req.purpose && pk) state.req.purpose = pk === '리뉴얼' ? '제품 리뉴얼' : '신제품 론칭';
+      }
       draw();
     });
     $('.pick [name=brand_id]', body)?.addEventListener('change', () => {
@@ -295,6 +335,12 @@ export function openRequestForm(kind, opts = {}) {
     });
     $$('[data-open-req]', body).forEach((b) => b.addEventListener('click', () => { const [k, id] = b.dataset.openReq.split(':'); openDetail(k, id); }));
     $$('[data-correction]', body).forEach((b) => b.addEventListener('click', () => requestCorrection(b.dataset.correction)));
+    const modeSel = $('[data-refmode]', body);
+    modeSel?.addEventListener('change', () => {
+      $$('[data-ref-pane]', body).forEach((p) => { p.hidden = p.dataset.refPane !== modeSel.value; });
+    });
+    const missing = $$('img[data-src-path]', body).filter((im) => !im.getAttribute('src')).map((im) => im.dataset.srcPath);
+    if (missing.length) ensureUrls(missing).then(() => $$('img[data-src-path]', body).forEach((im) => { if (S.urls[im.dataset.srcPath]) im.src = S.urls[im.dataset.srcPath]; }));
     const rf = $('[data-reqfiles]', body);
     rf?.addEventListener('change', () => { $('[data-reqfiles-list]', body).innerHTML = [...rf.files].map((f) => `<span class="file-chip">${esc(f.name)}</span>`).join(''); });
     $('[data-add-type]', body)?.addEventListener('click', async () => {
@@ -332,7 +378,9 @@ export function openRequestForm(kind, opts = {}) {
     snapshot();
     if (!form.checkValidity()) { form.reportValidity(); return; }
     const req = { ...state.req };
-    const files = [...($('[data-reqfiles]', body)?.files || [])];
+    const refMode = kind === 'shoot' ? (state.req.ref_mode || 'upload') : null;
+    const files = refMode === 'existing' ? [] : [...($('[data-reqfiles]', body)?.files || [])];
+    const linkIds = refMode === 'existing' ? (state.req.ref_existing || []) : [];
     const missing = [];
     if (kind !== 'design' && !state.productId && state.productMode !== 'new') missing.push('제품');
     if (create && kind === 'package' && !(req.design_types || []).length) missing.push('요청 디자인 유형');
@@ -390,6 +438,12 @@ export function openRequestForm(kind, opts = {}) {
       const reqFiles = kind === 'package' && pid ? files.filter((f) => !isImg(f)) : files;
       if (kind === 'package' && pid && files.some(isImg)) await uploadFiles('product', pid, 'product_image', files.filter(isImg));
       for (const c of created) if (reqFiles.length) await uploadFiles(kind, c.id, 'reference', reqFiles);
+      // 촬영 요청: 물류/발주팀 이미지를 다시 올리지 않고 같은 파일로 연결
+      if (linkIds.length) {
+        const src = S.data.attachments.filter((a) => linkIds.includes(a.id));
+        const rows = created.flatMap((c) => src.map((a) => ({ entity_type: kind, entity_id: c.id, kind: 'reference', storage_path: a.storage_path, file_name: a.file_name, mime_type: a.mime_type, size_bytes: a.size_bytes })));
+        if (rows.length) await S.db.insert('attachments', rows);
+      }
       if (opts.draft) await S.db.remove('drafts', { id: opts.draft.id }).catch(() => {});
       // 브랜드팀이 후속 업무를 만들면 '후속 진행'으로 표시
       if (pid && kind !== 'package' && can.launch() && launchOf(pid).followup === '미확인') {

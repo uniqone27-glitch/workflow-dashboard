@@ -37,7 +37,7 @@ export const KINDS = {
 export const PACKAGE_TYPES = ['제품 박스', '라벨', '스티커', '설명서', '기타'];
 export const SHOOT_PURPOSES = ['신제품 론칭', '제품 리뉴얼', '상세페이지 개선', '썸네일 변경', '광고 콘텐츠 제작', 'SNS 콘텐츠 제작', '기타'];
 export const SHOOT_TYPES = ['제품 누끼 촬영', '제품 단독 연출 촬영', '공간 스타일링 촬영', '제품 디테일 촬영', '기능 시연 촬영', '영상 촬영', '기타'];
-export const SHOOT_LOCATIONS = ['사내 스튜디오', '외부 스튜디오', '쇼룸', '고객 공간/야외', '기타'];
+export const SHOOT_LOCATIONS = ['외부 스튜디오', '쇼룸', '기타'];
 export const CHANNELS = ['자사몰', '스마트스토어', '쿠팡', '오늘의집', '인스타그램', '유튜브', '메타 광고', '네이버 광고', '기타'];
 
 // 공통 상세 사양

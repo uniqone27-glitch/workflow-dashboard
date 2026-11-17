@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel } from './constants.js';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js';
-import { openRequestForm, openProductForm } from './forms.js';
-import { launchSummary, progCell, histText } from './views.js';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611172250';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel } from './constants.js?v=202611172250';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611172250';
+import { openRequestForm, openProductForm } from './forms.js?v=202611172250';
+import { launchSummary, progCell, histText } from './views.js?v=202611172250';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -112,7 +112,9 @@ function bindAttachments(el, rerender) {
     if (!(await confirmBox('이 파일을 삭제할까요?', { danger: true, ok: '삭제' }))) return;
     try {
       await S.db.remove('attachments', { id: b.dataset.delAtt });
-      await S.db.removeFile(b.dataset.path).catch(() => {});
+      // 같은 파일을 다른 요청에서도 쓰고 있으면(제품 이미지 공유) 저장소 파일은 남겨 둠
+      const shared = S.data.attachments.some((x) => x.id !== b.dataset.delAtt && x.storage_path === b.dataset.path);
+      if (!shared) await S.db.removeFile(b.dataset.path).catch(() => {});
       await loadTable('attachments');
       rerender();
     } catch (e) { toast(errMsg(e), 'error'); }
