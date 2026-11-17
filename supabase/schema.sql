@@ -100,13 +100,14 @@ create table public.products (
   id            uuid primary key default gen_random_uuid(),
   code          text unique,
   brand_id      bigint references public.brands(id),
-  online_name   text not null,
-  retail_name   text,
+  online_name   text,
+  retail_name   text not null,
   sku           text,
   category      text not null,
   product_kind  text not null default '신제품'
                 check (product_kind in ('신제품','리뉴얼','패키지 변경','기존 제품')),
   arrival_date  date,
+  arrival_qty   int check (arrival_qty >= 0),
   reference_url text,
   specs         jsonb not null default '{}'::jsonb,   -- 공통 + 카테고리별 상세 사양 {필드키: 값}
   options       jsonb not null default '[]'::jsonb,   -- [{name,color,size,material,note}]
@@ -469,15 +470,15 @@ begin
 
   -- ---- 알림 ----
   if ent = 'product' then
-    if tg_op = 'INSERT' and n ? 'online_name' and n->>'product_kind' in ('신제품','리뉴얼') then
+    if tg_op = 'INSERT' and n ? 'retail_name' and n->>'product_kind' in ('신제품','리뉴얼') then
       insert into public.notifications (target_role, entity_type, entity_id, title, body, actor_id)
-      values ('brand', 'product', rid, n->>'product_kind' || ' 등록', n->>'online_name', auth.uid());
+      values ('brand', 'product', rid, n->>'product_kind' || ' 등록', coalesce(n->>'retail_name', n->>'online_name'), auth.uid());
     end if;
     return new;
   end if;
 
   if n ? 'product_id' and (n->>'product_id') is not null then
-    select online_name into ent_name from public.products where id = (n->>'product_id')::uuid;
+    select coalesce(retail_name, online_name) into ent_name from public.products where id = (n->>'product_id')::uuid;
   end if;
   label := rcode || ' · ' || coalesce(n->>'title', ent_name, '');
   title := case ent when 'package' then '패키지 디자인 요청'
