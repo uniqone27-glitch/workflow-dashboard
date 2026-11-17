@@ -1,8 +1,8 @@
-import { S, can, product, launchOf, requests, requestType, brandName, loadTable, productImages } from './store.js';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages } from './store.js';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, COMMON_SPECS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
   SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS } from './constants.js';
 import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js';
-import { openDetail, openProduct, uploadFiles } from './detail.js';
+import { openDetail, openProduct, uploadFiles, productGallery } from './detail.js';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 function specInputs(list, specs = {}) {
@@ -29,12 +29,11 @@ function productSection(p = {}, { withImages = true } = {}) {
     <fieldset><legend>기본 정보</legend><div class="form-grid prod-basic">
       <label class="field"><span>브랜드 <b class="req">*</b></span><select class="input" name="brand_id" required>${options(brands.map((b) => [String(b.id), b.name]), String(p.brand_id ?? ''), { empty: '선택' })}</select></label>
       <label class="field"><span>제품 카테고리 <b class="req">*</b></span><select class="input" name="category" required>${options(CATEGORIES, p.category, { empty: '선택' })}</select></label>
-      <label class="field wide"><span>온라인 제품명 <b class="req">*</b></span><input class="input" name="online_name" required value="${esc(p.online_name || '')}"></label>
-      <label class="field wide"><span>유통 제품명</span><input class="input" name="retail_name" value="${esc(p.retail_name || '')}"></label>
-      <label class="field"><span>제품 코드 / SKU</span><input class="input" name="sku" value="${esc(p.sku || '')}"></label>
-      <label class="field"><span>요청 구분 <b class="req">*</b></span><select class="input" name="product_kind" required>${options(PRODUCT_KINDS, p.product_kind || '신제품')}</select></label>
+      <label class="field wide"><span>유통 제품명 <b class="req">*</b></span><input class="input" name="retail_name" required value="${esc(p.retail_name || '')}"></label>
+      <label class="field wide"><span>온라인 제품명</span><input class="input" name="online_name" value="${esc(p.online_name || '')}"></label>
+      <label class="field wide"><span>요청 구분 <b class="req">*</b></span><select class="input" name="product_kind" required>${options(PRODUCT_KINDS, p.product_kind || '신제품')}</select></label>
       <label class="field"><span>입고 예정일</span><input class="input" type="date" name="arrival_date" value="${esc(p.arrival_date || '')}"></label>
-      <label class="field"><span>참고 URL</span><input class="input" name="reference_url" value="${esc(p.reference_url || '')}" placeholder="https://"></label>
+      <label class="field"><span>입고 예정 수량</span><input class="input" type="number" min="0" step="1" name="arrival_qty" value="${esc(p.arrival_qty ?? '')}" placeholder="예: 300"></label>
     </div></fieldset>
     <fieldset><legend>제품 상세 사양</legend>
       <div class="form-grid">${specInputs(COMMON_SPECS, p.specs)}</div>
@@ -92,6 +91,7 @@ function readProductSection(root) {
   return {
     ...basic,
     brand_id: basic.brand_id ? Number(basic.brand_id) : null,
+    arrival_qty: basic.arrival_qty != null && basic.arrival_qty !== '' ? Number(basic.arrival_qty) : null,
     specs,
     options: rows('.opt-row', ['name', 'color', 'size', 'material', 'note']),
     spec_changes: rows('.chg-row', ['field', 'before', 'after']),
@@ -107,15 +107,13 @@ function productPicker(selected, { required = true, brandFilter = null } = {}) {
   return `<select class="input" name="product_id" ${required ? 'required' : ''}>
     <option value="">${required ? '제품을 선택하세요' : '연관 제품 없음'}</option>
     ${Object.entries(byBrand).map(([b, ps]) => `<optgroup label="${esc(b)}">${ps.map((p) => `
-      <option value="${p.id}" ${p.id === selected ? 'selected' : ''}>${esc(p.online_name)}${p.sku ? ` (${esc(p.sku)})` : ''} · ${esc(p.product_kind)}</option>`).join('')}</optgroup>`).join('')}
+      <option value="${p.id}" ${p.id === selected ? 'selected' : ''}>${esc(pname(p))} · ${esc(p.category)} · ${esc(p.product_kind)}</option>`).join('')}</optgroup>`).join('')}
   </select>`;
 }
 
 function productInfo(pid, kind) {
   const p = product(pid);
   if (!p) return '';
-  const imgs = productImages(pid);
-  const url = imgs[0] && S.urls[imgs[0].storage_path];
   const specs = [...COMMON_SPECS, ...(CATEGORY_SPECS[p.category] || [])].filter((s) => p.specs?.[s.key]);
   const open = requests(kind).filter((r) => r.product_id === pid && !r.cancelled && r.status !== '완료');
   return `
@@ -124,10 +122,10 @@ function productInfo(pid, kind) {
       ${open.map((r) => `<button type="button" class="mini-row" data-open-req="${kind}:${r.id}"><span class="grow"><strong>${esc(r.code)}</strong> <small>${esc(requestType({ ...r, _kind: kind }))} · 희망 ${fmtDate(r.due_date)}</small></span>${statusPill(r.status)}</button>`).join('')}
     </div>` : ''}
     <div class="product-info">
-      ${url ? `<img src="${esc(url)}" alt="">` : '<span class="thumb empty lg"></span>'}
+      ${productGallery(pid)}
       <div class="grow">
-        <div class="muted small">${esc(brandName(p.brand_id))} · ${esc(p.category)} · ${esc(p.product_kind)} · 입고 예정 ${fmtDate(p.arrival_date)}</div>
-        <strong>${esc(p.online_name)}</strong> <span class="small">${esc(p.retail_name || '')}</span>
+        <div class="muted small">${esc(brandName(p.brand_id))} · ${esc(p.category)} · ${esc(p.product_kind)} · 입고 예정 ${fmtDate(p.arrival_date)}${p.arrival_qty != null ? ` · ${esc(p.arrival_qty)}개` : ''}</div>
+        <strong>${esc(pname(p))}</strong> <span class="small">${p.online_name && p.online_name !== p.retail_name ? `온라인: ${esc(p.online_name)}` : ''}</span>
         <dl class="spec-mini">${specs.map((s) => `<div><dt>${esc(s.label)}</dt><dd>${esc(p.specs[s.key])}</dd></div>`).join('')}</dl>
         ${p.options?.length ? `<div class="small"><b>옵션</b> ${p.options.map((o) => esc([o.name, o.color, o.size, o.material].filter(Boolean).join(' / '))).join(' · ')}</div>` : ''}
         ${p.spec_changes?.length ? `<div class="small"><b>변경사항</b> ${p.spec_changes.map((c) => `${esc(c.field)}: ${esc(c.before)} → ${esc(c.after)}`).join(' · ')}</div>` : ''}
@@ -232,7 +230,7 @@ export function openRequestForm(kind, opts = {}) {
     req: draftPayload.req || { ...(edit || {}), product_id: opts.productId || edit?.product_id || null, shoot_request_id: opts.shootId || edit?.shoot_request_id || null },
   };
   if (kind === 'design' && create && !state.req.brand_id && state.productId) state.req.brand_id = product(state.productId)?.brand_id;
-  if (kind === 'design' && create && !state.req.title && state.productId && opts.multiType) state.req.title = product(state.productId)?.online_name;
+  if (kind === 'design' && create && !state.req.title && state.productId && opts.multiType) state.req.title = pname(product(state.productId));
   if (kind === 'shoot' && create && !state.req.purpose && state.productId) {
     const pk = product(state.productId)?.product_kind;
     state.req.purpose = pk === '리뉴얼' ? '제품 리뉴얼' : pk === '신제품' ? '신제품 론칭' : '';
@@ -317,7 +315,7 @@ export function openRequestForm(kind, opts = {}) {
   // 임시저장 (서버에 본인 전용으로 저장)
   $('[data-draft]', m.el)?.addEventListener('click', async () => {
     snapshot();
-    const title = state.newProduct?.online_name || product(state.productId)?.online_name || state.req.title || '(제목 없음)';
+    const title = state.newProduct?.retail_name || state.newProduct?.online_name || (state.productId && pname(product(state.productId))) || state.req.title || '(제목 없음)';
     const payload = { productMode: state.productMode, productId: state.productId, newProduct: state.newProduct, req: state.req };
     try {
       if (opts.draft) await S.db.update('drafts', { id: opts.draft.id }, { payload, title, updated_at: new Date().toISOString() });
@@ -415,7 +413,7 @@ function requestColumns(kind) {
   }[kind];
 }
 function productColumns(p) {
-  const cols = ['brand_id', 'online_name', 'retail_name', 'sku', 'category', 'product_kind', 'arrival_date', 'reference_url', 'specs', 'options', 'spec_changes', 'spec_notes'];
+  const cols = ['brand_id', 'online_name', 'retail_name', 'category', 'product_kind', 'arrival_date', 'arrival_qty', 'specs', 'options', 'spec_changes', 'spec_notes'];
   return Object.fromEntries(cols.map((c) => [c, p[c] === '' || p[c] === undefined ? null : p[c]]).filter(([c, v]) => v !== null || !['specs', 'options', 'spec_changes'].includes(c)));
 }
 

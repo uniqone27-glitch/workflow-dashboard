@@ -1,4 +1,4 @@
-import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, productThumb, profileName,
+import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, profileName,
   brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js';
 import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js';
 import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js';
@@ -71,7 +71,7 @@ function dashboardView(route, el) {
         <div class="card"><div class="card-head"><h3>최근 등록 신제품 · 리뉴얼</h3><a href="#/products" class="more">전체</a></div>
           ${newProducts.length ? newProducts.map((p) => `
             <button class="mini-row" data-product="${p.id}">${thumb(p.id)}
-              <span class="grow"><strong>${esc(p.online_name)}</strong><small>${esc(brandName(p.brand_id))} · ${esc(p.product_kind)} · 입고 ${fmtDate(p.arrival_date)}</small></span>
+              <span class="grow"><strong>${esc(pname(p))}</strong><small>${esc(brandName(p.brand_id))} · ${esc(p.product_kind)} · 입고 ${fmtDate(p.arrival_date)}</small></span>
               <span class="tag">${esc(launchOf(p.id).launch_state || '')}</span></button>`).join('') : '<p class="empty">등록된 제품이 없습니다.</p>'}
         </div>
       </div>
@@ -111,7 +111,7 @@ function followupBanner() {
   if (!list.length) return '';
   return `<div class="banner"><div><strong>브랜드팀 확인 필요 ${list.length}건</strong>
     <span>새로 등록된 신제품·리뉴얼 제품의 촬영/디자인 후속 업무를 결정하세요.</span></div>
-    <div class="chips">${list.slice(0, 6).map((p) => `<button class="chip" data-product="${p.id}">${esc(p.online_name)}</button>`).join('')}</div></div>`;
+    <div class="chips">${list.slice(0, 6).map((p) => `<button class="chip" data-product="${p.id}">${esc(pname(p))}</button>`).join('')}</div></div>`;
 }
 
 function thumb(pid, size = '') {
@@ -156,7 +156,7 @@ function requestView(route, el) {
     ${kind === 'package' ? `<div id="fu-banner">${followupBanner()}</div>` : ''}
     <div class="toolbar">
       <div class="seg-ctl" id="status-seg"></div>
-      <input class="input search" id="q" placeholder="제품명, 작업명, 요청번호, SKU 검색" value="${esc(f.q || '')}">
+      <input class="input search" id="q" placeholder="제품명, 작업명, 요청번호 검색" value="${esc(f.q || '')}">
       <select class="input" id="sort">${options([['recent', '최근 요청순'], ['due', '희망 완료일순'], ['priority', '우선순위순']], f.sort)}</select>
       <div class="grow"></div>
       ${drafts.length ? `<button class="btn" id="drafts">임시저장 ${drafts.length}</button>` : ''}
@@ -199,7 +199,7 @@ function requestView(route, el) {
       if (f.special === 'week' && !dueThisWeek(r)) return false;
       if (f.special === 'mine' && r.assignee_id !== S.me.id && r.requester_id !== S.me.id) return false;
       if (q) {
-        const hay = [r.code, requestTitle(r), p?.online_name, p?.retail_name, p?.sku, requestType(r), profileName(r.requester_id), profileName(r.assignee_id)].join(' ').toLowerCase();
+        const hay = [r.code, requestTitle(r), p?.online_name, p?.retail_name, requestType(r), profileName(r.requester_id), profileName(r.assignee_id)].join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -245,7 +245,7 @@ function requestTable(list, showKind) {
         <td class="mono">${esc(r.code)}</td>
         ${showKind ? `<td>${KINDS[r._kind].short}</td>` : ''}
         <td>${esc(requestBrand(r))}</td>
-        <td class="title-cell"><strong>${esc(requestTitle(r))}</strong>${r._kind === 'design' && r.product_id ? `<small>${esc(product(r.product_id)?.online_name || '')}</small>` : ''}</td>
+        <td class="title-cell"><strong>${esc(requestTitle(r))}</strong>${r._kind === 'design' && r.product_id ? `<small>${esc(pname(product(r.product_id)))}</small>` : ''}</td>
         <td>${esc(requestType(r))}</td>
         <td>${ROLES[KINDS[r._kind].requester]}</td>
         <td>${esc(profileName(r.requester_id))}</td>
@@ -263,7 +263,7 @@ function exportExcel(rows, label) {
     const p = product(r.product_id);
     return {
       요청번호: r.code, 구분: KINDS[r._kind].label, 브랜드: requestBrand(r), '제품명/작업명': requestTitle(r),
-      온라인제품명: p?.online_name || '', 유통제품명: p?.retail_name || '', SKU: p?.sku || '', 카테고리: p?.category || '',
+      유통제품명: p?.retail_name || '', 온라인제품명: p?.online_name || '', 카테고리: p?.category || '', 입고예정일: p?.arrival_date || '', 입고예정수량: p?.arrival_qty ?? '',
       요청유형: requestType(r), 요청부서: ROLES[KINDS[r._kind].requester], 요청자: profileName(r.requester_id),
       담당자: r.assignee_id ? profileName(r.assignee_id) : '', 우선순위: r.priority, 상태: r.cancelled ? '취소' : r.status,
       요청일: (r.created_at || '').slice(0, 10), 희망완료일: r.due_date || '', 예상완료일: r.expected_date || '',
@@ -317,7 +317,7 @@ function productsView(route, el) {
   const f = S.filters.products = S.filters.products || {};
   el.innerHTML = `
     <div class="toolbar">
-      <input class="input search" id="pq" placeholder="제품명, 유통명, SKU, 제품코드 검색" value="${esc(f.q || '')}">
+      <input class="input search" id="pq" placeholder="유통 제품명, 온라인 제품명, 관리번호 검색" value="${esc(f.q || '')}">
       <select class="input" data-f="brand">${options(S.data.brands.map((b) => [String(b.id), b.name]), f.brand, { empty: '브랜드 전체' })}</select>
       <select class="input" data-f="category">${options(CATEGORIES, f.category, { empty: '카테고리 전체' })}</select>
       <select class="input" data-f="kind">${options(PRODUCT_KINDS, f.kind, { empty: '구분 전체' })}</select>
@@ -337,18 +337,18 @@ function productsView(route, el) {
       if (f.kind && p.product_kind !== f.kind) return false;
       if (f.launch && l.launch_state !== f.launch) return false;
       if (f.followup && l.followup !== f.followup) return false;
-      if (q && ![p.code, p.online_name, p.retail_name, p.sku].join(' ').toLowerCase().includes(q)) return false;
+      if (q && ![p.code, p.online_name, p.retail_name].join(' ').toLowerCase().includes(q)) return false;
       return true;
     });
     $('#presults', el).innerHTML = list.length ? `<div class="table-scroll"><table class="table">
-      <thead><tr><th></th><th>제품코드</th><th>브랜드</th><th>제품명</th><th>카테고리</th><th>구분</th><th>입고 예정일</th>
+      <thead><tr><th></th><th>관리번호</th><th>브랜드</th><th>제품명</th><th>카테고리</th><th>구분</th><th>입고 예정 (수량)</th>
         <th>패키지</th><th>촬영</th><th>상세페이지</th><th>썸네일</th><th>론칭 예정일</th><th>론칭 준비 상태</th></tr></thead>
       <tbody>${list.map((p) => {
         const s = launchSummary(p.id);
         return `<tr data-pid="${p.id}">
           <td>${thumb(p.id, 'sm')}</td><td class="mono">${esc(p.code)}</td><td>${esc(brandName(p.brand_id))}</td>
-          <td class="title-cell"><strong>${esc(p.online_name)}</strong><small>${esc(p.retail_name || '')}${p.sku ? ` · ${esc(p.sku)}` : ''}</small></td>
-          <td>${esc(p.category)}</td><td>${esc(p.product_kind)}</td><td>${fmtDate(p.arrival_date)}</td>
+          <td class="title-cell"><strong>${esc(pname(p))}</strong><small>${p.online_name && p.online_name !== p.retail_name ? `온라인: ${esc(p.online_name)}` : ''}</small></td>
+          <td>${esc(p.category)}</td><td>${esc(p.product_kind)}</td><td>${fmtDate(p.arrival_date)}${p.arrival_qty != null ? `<small class="muted"> · ${esc(p.arrival_qty)}개</small>` : ''}</td>
           <td>${progCell(s.package)}</td><td>${progCell(s.shoot)}</td><td>${progCell(s.detail)}</td><td>${progCell(s.thumb)}</td>
           <td>${fmtDate(s.l.launch_date)}</td><td><span class="launch launch-${LAUNCH_STATES.indexOf(s.l.launch_state)}">${esc(s.l.launch_state || '-')}</span></td>
         </tr>`;

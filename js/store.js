@@ -46,6 +46,9 @@ export const profileName = (id) => (id ? S.data.profiles.find((p) => p.id === id
 export const profileRole = (id) => S.data.profiles.find((p) => p.id === id)?.role;
 export const brandName = (id) => S.data.brands.find((b) => String(b.id) === String(id))?.name || '-';
 export const product = (id) => S.data.products.find((p) => p.id === id);
+// 대표 제품명: 유통 제품명(필수) 우선, 없으면 온라인 제품명
+export const pname = (p) => (p ? p.retail_name || p.online_name || '(이름 없음)' : '');
+export const psub = (p) => (p && p.retail_name && p.online_name && p.online_name !== p.retail_name ? `온라인: ${p.online_name}` : '');
 export const launchOf = (pid) => S.data.launch_readiness.find((l) => l.product_id === pid) || {};
 export const designers = () => S.data.profiles.filter((p) => p.active && (p.role === 'design' || p.role === 'admin'));
 
@@ -72,7 +75,7 @@ export function findRequest(kind, id) {
 export function requestTitle(r) {
   if (r._kind === 'design' || r.title) return r.title;
   const p = product(r.product_id);
-  return p?.online_name || '(삭제된 제품)';
+  return p ? pname(p) : '(삭제된 제품)';
 }
 export function requestType(r) {
   if (r._kind === 'package') return r.design_type === '기타' && r.design_type_etc ? r.design_type_etc : r.design_type;

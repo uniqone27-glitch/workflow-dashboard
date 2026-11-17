@@ -160,3 +160,57 @@ export function fileSize(n) {
   if (n < 1048576) return `${(n / 1024).toFixed(0)} KB`;
   return `${(n / 1048576).toFixed(1)} MB`;
 }
+
+// 이미지 확대 보기 (요청서·상세 화면의 모든 이미지 공통)
+// items: [{ src, name, path }], onDownload(item): 원본 다운로드
+export function openLightbox(items, start = 0, { onDownload } = {}) {
+  if (!items.length) return;
+  let i = Math.max(0, Math.min(start, items.length - 1));
+  const wrap = document.createElement('div');
+  wrap.className = 'lightbox';
+  wrap.innerHTML = `
+    <div class="lb-bar">
+      <span class="lb-name"></span><span class="lb-count"></span><div class="grow"></div>
+      <button class="lb-btn" data-lb="zoom" title="실제 크기 / 화면 맞춤">실제 크기</button>
+      <button class="lb-btn" data-lb="open" title="새 탭에서 원본 열기">새 탭</button>
+      ${onDownload ? '<button class="lb-btn" data-lb="dl">다운로드</button>' : ''}
+      <button class="lb-btn lb-close" data-lb="close" title="닫기 (Esc)">✕</button>
+    </div>
+    <div class="lb-stage"><img alt=""></div>
+    ${items.length > 1 ? '<button class="lb-nav prev" data-lb="prev" aria-label="이전">‹</button><button class="lb-nav next" data-lb="next" aria-label="다음">›</button>' : ''}`;
+  document.body.appendChild(wrap);
+  const img = wrap.querySelector('img');
+  const stage = wrap.querySelector('.lb-stage');
+  const show = () => {
+    const it = items[i];
+    stage.classList.remove('zoomed');
+    wrap.querySelector('[data-lb=zoom]').textContent = '실제 크기';
+    img.src = it.src;
+    wrap.querySelector('.lb-name').textContent = it.name || '';
+    wrap.querySelector('.lb-count').textContent = items.length > 1 ? `${i + 1} / ${items.length}` : '';
+  };
+  const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey, true); };
+  const move = (d) => { i = (i + d + items.length) % items.length; show(); };
+  const toggleZoom = () => {
+    const z = stage.classList.toggle('zoomed');
+    wrap.querySelector('[data-lb=zoom]').textContent = z ? '화면 맞춤' : '실제 크기';
+  };
+  function onKey(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    if (e.key === 'ArrowLeft') move(-1);
+    if (e.key === 'ArrowRight') move(1);
+  }
+  document.addEventListener('keydown', onKey, true);
+  wrap.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-lb]')?.dataset.lb;
+    if (a === 'close') close();
+    else if (a === 'prev') move(-1);
+    else if (a === 'next') move(1);
+    else if (a === 'zoom') toggleZoom();
+    else if (a === 'open') window.open(items[i].src, '_blank', 'noopener');
+    else if (a === 'dl') onDownload(items[i]);
+    else if (e.target === img) toggleZoom();
+    else if (e.target === stage) close();
+  });
+  show();
+}

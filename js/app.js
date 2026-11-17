@@ -2,7 +2,7 @@ import { supabaseBackend, demoBackend } from './db.js';
 import { S, loadAll, loadTable, ensureUrls, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js';
 import { KINDS } from './constants.js';
 import { ROLES } from './constants.js';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal } from './ui.js';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js';
 import { renderView, ROUTES } from './views.js';
 import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js';
 
@@ -17,7 +17,7 @@ async function boot() {
   if (!isDemo && (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_URL.includes('YOUR-PROJECT'))) {
     root.innerHTML = `
       <div class="auth-wrap"><div class="auth-card">
-        <div class="logo">Workflow</div>
+        <div class="logo">FBG Cooperation Dashboard_v1.0</div>
         <h1>서버 연결 설정이 필요합니다</h1>
         <p class="muted">js/config.js 파일에 Supabase 프로젝트 URL과 anon key를 입력한 뒤 다시 접속하세요.
         설정 방법은 README.md 의 「1. Supabase 설정」을 참고하세요.</p>
@@ -50,7 +50,7 @@ function renderLogin(mode = 'login') {
     </div>` : '';
   root.innerHTML = `
     <div class="auth-wrap"><div class="auth-card">
-      <div class="logo">Workflow</div>
+      <div class="logo">FBG Cooperation Dashboard_v1.0</div>
       <h1>${mode === 'signup' ? '계정 만들기' : mode === 'reset' ? '비밀번호 재설정' : '로그인'}</h1>
       <p class="muted">물류/발주 · 브랜드 · 디자인 통합 업무관리</p>
       ${isDemo ? demoUsers : `
@@ -125,7 +125,7 @@ async function startApp() {
 
 function renderPending() {
   root.innerHTML = `<div class="auth-wrap"><div class="auth-card">
-    <div class="logo">Workflow</div>
+    <div class="logo">FBG Cooperation Dashboard_v1.0</div>
     <h1>승인 대기 중</h1>
     <p class="muted">${esc(S.me?.name || S.user.email)} 님의 계정이 생성되었습니다.<br>관리자가 소속 팀을 지정하면 대시보드를 이용할 수 있습니다.</p>
     <div class="row gap"><button class="btn" id="re">다시 확인</button><button class="btn" id="lo">로그아웃</button></div>
@@ -184,7 +184,7 @@ function renderShell() {
   root.innerHTML = `
     <div class="app">
       <aside class="sidebar">
-        <div class="brand-mark">Workflow<span>Product Launch</span></div>
+        <div class="brand-mark">FBG Cooperation<br>Dashboard_v1.0</div>
         <nav id="nav"></nav>
         <div class="me">
           <div class="avatar">${esc((S.me.name || '?').slice(0, 1))}</div>
@@ -290,5 +290,21 @@ function route() {
   renderView(r, $('#view'), true);
   $('#view').scrollTop = 0;
 }
+
+// 이미지 확대: 같은 갤러리 안의 이미지끼리 좌우로 넘겨 볼 수 있음
+document.addEventListener('click', (e) => {
+  const img = e.target.closest('img[data-zoom]');
+  if (!img) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const group = img.closest('[data-gallery]');
+  const imgs = group ? [...group.querySelectorAll('img[data-zoom]')] : [img];
+  const items = imgs.map((x) => ({ src: x.src, name: x.dataset.name, path: x.dataset.path }));
+  openLightbox(items, imgs.indexOf(img), {
+    onDownload: async (it) => {
+      try { window.open(await S.db.downloadUrl(it.path, it.name), '_blank'); } catch (err) { toast(errMsg(err), 'error'); }
+    },
+  });
+}, true);
 
 boot();

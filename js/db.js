@@ -164,12 +164,12 @@ export function demoBackend() {
       emit('notifications', 'INSERT', r);
     };
     if (table === 'products' && op === 'create' && ['신제품', '리뉴얼'].includes(row.product_kind)) {
-      notify({ target_role: 'brand', title: `${row.product_kind} 등록`, body: row.online_name });
+      notify({ target_role: 'brand', title: `${row.product_kind} 등록`, body: row.retail_name || row.online_name });
     }
     const req = REQ[table];
     if (!req) return;
     const title = { package: '패키지 디자인 요청', shoot: '촬영 요청', design: '디자인 작업 요청' }[ent];
-    const pname = db.products.find((p) => p.id === row.product_id)?.online_name || '';
+    const pp = db.products.find((p) => p.id === row.product_id); const pname = pp ? pp.retail_name || pp.online_name : '';
     const body = `${row.code} · ${row.title || pname}`;
     if (op === 'create') req[2].forEach((r) => notify({ target_role: r, title: `신규 ${title}`, body }));
     if (changes.status) notify({ target_role: req[0], title: row.status === '완료' ? `${title} 완료` : `${title} 상태 변경: ${row.status}`, body });
@@ -306,9 +306,9 @@ export function demoBackend() {
     ];
     const img = (txt, bg) => `demo:data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="${bg}"/><text x="200" y="215" font-size="40" text-anchor="middle" fill="#555" font-family="sans-serif">${txt}</text></svg>`)}`;
     const products = [
-      { id: 'p1', code: 'PRD-DEMO-0001', brand_id: 1, online_name: '오크 원목 라운드 테이블 1200', retail_name: '퍼니츠 라운드 테이블 OAK', sku: 'FN-TB-1200-OAK', category: '테이블', product_kind: '신제품', arrival_date: d(12), reference_url: '', specs: { color: '오크 / 월넛', size: '1200 × 1200 × 740', material: '오크 원목, 스틸', design_feature: '라운드 상판, 아치형 다리', main_function: '조절발로 수평 조절', top_color: '오크', frame_color: '블랙', top_material: '오크 원목 집성', dimension: '1200 × 1200 × 740', top_thickness: '25mm', shape: '라운드', leveler: '있음', assembly: '반조립' }, options: [{ name: '오크', color: '오크', size: '1200', material: '오크 원목', note: '' }, { name: '월넛', color: '월넛', size: '1200', material: '월넛 원목', note: '+5만원' }], spec_changes: [], spec_notes: '상판 모서리 R30 라운드 처리', created_by: 'u-log', created_at: ts(-6), updated_at: ts(-6) },
+      { id: 'p1', code: 'PRD-DEMO-0001', brand_id: 1, online_name: '오크 원목 라운드 테이블 1200', retail_name: '퍼니츠 라운드 테이블 OAK', sku: 'FN-TB-1200-OAK', category: '테이블', product_kind: '신제품', arrival_date: d(12), arrival_qty: 300, reference_url: '', specs: { color: '오크 / 월넛', size: '1200 × 1200 × 740', material: '오크 원목, 스틸', design_feature: '라운드 상판, 아치형 다리', main_function: '조절발로 수평 조절', top_color: '오크', frame_color: '블랙', top_material: '오크 원목 집성', dimension: '1200 × 1200 × 740', top_thickness: '25mm', shape: '라운드', leveler: '있음', assembly: '반조립' }, options: [{ name: '오크', color: '오크', size: '1200', material: '오크 원목', note: '' }, { name: '월넛', color: '월넛', size: '1200', material: '월넛 원목', note: '+5만원' }], spec_changes: [], spec_notes: '상판 모서리 R30 라운드 처리', created_by: 'u-log', created_at: ts(-6), updated_at: ts(-6) },
       { id: 'p2', code: 'PRD-DEMO-0002', brand_id: 2, online_name: '뽀뽀 패브릭 3인 소파 (리뉴얼)', retail_name: '뽀뽀백번 소파 V2', sku: 'BB-SF-3-V2', category: '소파', product_kind: '리뉴얼', arrival_date: d(5), specs: { color: '아이보리', material: '부클레 패브릭', fabric_color: '아이보리', seats: '3인', cover: '가능' }, options: [{ name: '아이보리', color: '아이보리', size: '2100', material: '부클레', note: '' }], spec_changes: [{ field: '프레임 두께', before: '18mm', after: '25mm' }, { field: '컬러', before: '베이지', after: '아이보리' }], spec_notes: '', created_by: 'u-log', created_at: ts(-3), updated_at: ts(-3) },
-      { id: 'p3', code: 'PRD-DEMO-0003', brand_id: 1, online_name: '스틸 X프레임 5단 책장', retail_name: '퍼니츠 X 책장 5단', sku: 'FN-BS-5X', category: '책장/수납장', product_kind: '신제품', arrival_date: d(-2), specs: { body_color: '화이트', shelf_count: '5', reinforcement: 'X 와이어', wall_fix: '필요' }, options: [], spec_changes: [], created_by: 'u-log', created_at: ts(-14), updated_at: ts(-14) },
+      { id: 'p3', code: 'PRD-DEMO-0003', brand_id: 1, online_name: '스틸 X프레임 5단 책장', retail_name: '퍼니츠 X 책장 5단', sku: 'FN-BS-5X', category: '책장', arrival_qty: 150, product_kind: '신제품', arrival_date: d(-2), specs: { body_color: '화이트', shelf_count: '5', reinforcement: 'X 와이어', wall_fix: '필요' }, options: [], spec_changes: [], created_by: 'u-log', created_at: ts(-14), updated_at: ts(-14) },
     ];
     const L = (product_id, o) => ({ product_id, followup: '미확인', shoot_needed: '미정', detail_needed: '미정', thumb_needed: '미정', launch_date: null, launch_state: '준비 전', note: null, updated_at: ts(-1), ...o });
     const base = (o) => ({ cancelled: false, cancel_reason: null, assignee_id: null, expected_date: null, work_memo: null, result_url: null, completed_date: null, status: '요청', priority: '보통', updated_at: o.created_at, status_changed_at: o.created_at, ...o });

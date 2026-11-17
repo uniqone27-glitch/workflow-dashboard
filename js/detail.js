@@ -1,4 +1,4 @@
-import { S, can, findRequest, product, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
+import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
   requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js';
 import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel } from './constants.js';
 import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js';
@@ -66,6 +66,18 @@ export async function uploadFiles(entity, entityId, kind, files) {
   return out;
 }
 
+export const zoomImg = (a, cls = '') => `<img class="${cls}" src="${esc(S.urls[a.storage_path])}" alt="" loading="lazy" data-zoom data-path="${esc(a.storage_path)}" data-name="${esc(a.file_name)}">`;
+
+// 제품 이미지 갤러리: 대표 이미지 + 나머지 썸네일, 모두 클릭하면 확대
+export function productGallery(pid) {
+  const imgs = productImages(pid).filter((a) => S.urls[a.storage_path]);
+  if (!imgs.length) return '<span class="thumb empty lg"></span>';
+  const rest = imgs.slice(1, 9);
+  return `<div class="gallery" data-gallery>${zoomImg(imgs[0], 'g-main')}
+    ${rest.length ? `<div class="g-strip">${rest.map((a) => zoomImg(a)).join('')}</div>` : ''}
+    ${imgs.length > 1 ? `<span class="g-more">이미지 ${imgs.length}장 · 클릭해 확대</span>` : '<span class="g-more">클릭해 확대</span>'}</div>`;
+}
+
 const isImage = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg)$/i.test(a.file_name);
 
 function attachmentBlock(entity, id, kinds, { title, uploadKind, empty = '첨부된 파일이 없습니다.' }) {
@@ -73,9 +85,9 @@ function attachmentBlock(entity, id, kinds, { title, uploadKind, empty = '첨부
   const canUp = uploadKind && can.attach(entity, uploadKind);
   return `<div class="att-block" data-att="${entity}:${id}:${uploadKind || ''}">
     <div class="sub-head"><h4>${title}</h4>${canUp ? `<label class="btn btn-sm">파일 추가<input type="file" multiple hidden data-upload></label>` : ''}</div>
-    ${list.length ? `<div class="att-grid">${list.map((a) => `
+    ${list.length ? `<div class="att-grid" data-gallery>${list.map((a) => `
       <div class="att">
-        ${isImage(a) && S.urls[a.storage_path] ? `<a href="${esc(S.urls[a.storage_path])}" target="_blank" rel="noopener"><img src="${esc(S.urls[a.storage_path])}" alt=""></a>` : `<div class="att-file">${esc((a.file_name.split('.').pop() || '').toUpperCase())}</div>`}
+        ${isImage(a) && S.urls[a.storage_path] ? zoomImg(a) : `<div class="att-file">${esc((a.file_name.split('.').pop() || '').toUpperCase())}</div>`}
         <div class="att-meta"><button class="btn-link" data-dl="${esc(a.storage_path)}" data-name="${esc(a.file_name)}">${esc(a.file_name)}</button>
           <small>${fileSize(a.size_bytes)} · ${esc(profileName(a.uploaded_by))}</small>
           ${a.uploaded_by === S.me.id || can.admin() ? `<button class="btn-link danger small" data-del-att="${a.id}" data-path="${esc(a.storage_path)}">삭제</button>` : ''}</div>
@@ -177,15 +189,13 @@ function fields(rows) {
 
 function productCard(p, { specs = false } = {}) {
   if (!p) return '<div class="product-card muted">연결된 제품 없음</div>';
-  const img = productImages(p.id)[0];
-  const url = img && S.urls[img.storage_path];
   const specRows = specs ? [...COMMON_SPECS, ...(CATEGORY_SPECS[p.category] || [])].filter((s) => p.specs?.[s.key]) : [];
   return `<div class="product-card">
-    ${url ? `<img src="${esc(url)}" alt="">` : '<span class="thumb empty lg"></span>'}
+    ${productGallery(p.id)}
     <div class="grow">
       <div class="muted small">${esc(brandName(p.brand_id))} · ${esc(p.category)} · ${esc(p.product_kind)} · <span class="mono">${esc(p.code)}</span></div>
-      <strong>${esc(p.online_name)}</strong>
-      <div class="small">${esc(p.retail_name || '')}${p.sku ? ` · SKU ${esc(p.sku)}` : ''} · 입고 예정 ${fmtDate(p.arrival_date)}</div>
+      <strong>${esc(pname(p))}</strong>
+      <div class="small">${p.online_name && p.online_name !== p.retail_name ? `온라인: ${esc(p.online_name)} · ` : ''}입고 예정 ${fmtDate(p.arrival_date)}${p.arrival_qty != null ? ` · ${esc(p.arrival_qty)}개` : ''}</div>
       ${specRows.length ? `<dl class="spec-mini">${specRows.map((s) => `<div><dt>${esc(s.label)}</dt><dd>${esc(p.specs[s.key])}</dd></div>`).join('')}</dl>` : ''}
       ${specs && p.options?.length ? `<div class="small"><b>옵션</b> ${p.options.map((o) => esc([o.name, o.color, o.size, o.material].filter(Boolean).join(' / '))).join(' · ')}</div>` : ''}
       ${specs && p.spec_notes ? `<div class="small"><b>특이사항</b> ${nl(p.spec_notes)}</div>` : ''}
@@ -380,7 +390,7 @@ function renderProduct(panel, pid) {
   el.innerHTML = `
     <div class="drawer-head">
       <div><div class="muted small">제품 통합 관리 · <span class="mono">${esc(p.code)}</span></div>
-        <h2>${esc(p.online_name)}</h2>
+        <h2>${esc(pname(p))}</h2>
         <div class="row gap-sm"><span class="tag">${esc(p.product_kind)}</span><span class="muted small">${esc(brandName(p.brand_id))} · ${esc(p.category)}</span></div>
       </div>
       <button class="icon-btn" data-x title="닫기">✕</button>
@@ -402,9 +412,9 @@ function renderProduct(panel, pid) {
         <section class="section"><h3>기본 정보</h3>
           ${fields([
             ['브랜드', esc(brandName(p.brand_id))], ['카테고리', esc(p.category)],
-            ['온라인 제품명', esc(p.online_name), true], ['유통 제품명', esc(p.retail_name || '-'), true],
-            ['제품 코드/SKU', esc(p.sku || '-')], ['요청 구분', esc(p.product_kind)],
-            ['입고 예정일', fmtDate(p.arrival_date)], ['참고 URL', linkify(p.reference_url)],
+            ['유통 제품명', esc(p.retail_name || '-'), true], ['온라인 제품명', esc(p.online_name || '-'), true],
+            ['요청 구분', esc(p.product_kind)], ['제품 관리번호', `<span class="mono">${esc(p.code)}</span>`],
+            ['입고 예정일', fmtDate(p.arrival_date)], ['입고 예정 수량', p.arrival_qty != null ? `${esc(p.arrival_qty)}개` : '-'],
             ['등록', `${esc(profileName(p.created_by))} · ${fmtDateTime(p.created_at)}`, true],
             ['최종 수정', `${esc(profileName(p.updated_by))} · ${fmtDateTime(p.updated_at)}`, true],
           ])}
@@ -462,7 +472,7 @@ function renderProduct(panel, pid) {
     try { await S.db.update('launch_readiness', { product_id: pid }, { followup: '후속 불필요' }); await loadTable('launch_readiness'); toast('후속 작업 불필요로 표시했습니다.'); rerender(); S.hooks.rerender(); } catch (e) { toast(errMsg(e), 'error'); }
   });
   $('[data-delete]', el)?.addEventListener('click', async () => {
-    if (!(await confirmBox(`'${p.online_name}' 제품과 연결된 패키지·촬영 요청이 모두 삭제됩니다. 되돌릴 수 없습니다.`, { danger: true, ok: '영구 삭제' }))) return;
+    if (!(await confirmBox(`'${pname(p)}' 제품과 연결된 패키지·촬영 요청이 모두 삭제됩니다. 되돌릴 수 없습니다.`, { danger: true, ok: '영구 삭제' }))) return;
     try { await S.db.remove('products', { id: pid }); await Promise.all(['products', 'package_requests', 'shoot_requests', 'design_requests', 'launch_readiness'].map(loadTable)); panel.close(); S.hooks.rerender(); } catch (e) { toast(errMsg(e), 'error'); }
   });
   const lf = $('.launch-form', el);
