@@ -352,3 +352,33 @@ legend + * { clear: both; }
   .bar-row { grid-template-columns: 76px 1fr 28px; }
   .live { display: none; }
 }
+
+/* ---------- 이미지 확대 보기 ---------- */
+img[data-zoom] { cursor: zoom-in; }
+.lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.88); display: flex; flex-direction: column; animation: fade .15s; }
+.lb-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; color: #fff; font-size: 13px; }
+.lb-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+.lb-count { color: rgba(255,255,255,.6); }
+.lb-btn { height: 32px; padding: 0 12px; border-radius: 980px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: 500 13px var(--font); cursor: pointer; }
+.lb-btn:hover { background: rgba(255,255,255,.18); }
+.lb-close { width: 32px; padding: 0; }
+.lb-stage { flex: 1; min-height: 0; display: grid; place-items: center; overflow: auto; padding: 0 56px 24px; }
+.lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; background: #fff; cursor: zoom-in; }
+.lb-stage.zoomed { place-items: start center; }
+.lb-stage.zoomed img { max-width: none; max-height: none; cursor: zoom-out; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; border: 0; border-radius: 12px; background: rgba(255,255,255,.1); color: #fff; font-size: 32px; cursor: pointer; }
+.lb-nav:hover { background: rgba(255,255,255,.22); }
+.lb-nav.prev { left: 8px; } .lb-nav.next { right: 8px; }
+.gallery { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.gallery .g-main { width: 120px; height: 120px; border-radius: 12px; object-fit: cover; background: #f0f0f2; }
+.gallery .g-strip { display: flex; flex-wrap: wrap; gap: 4px; width: 120px; }
+.gallery .g-strip img { width: 37px; height: 37px; border-radius: 6px; object-fit: cover; background: #f0f0f2; }
+.gallery .g-more { font-size: 11px; color: var(--text-2); }
+@media (max-width: 640px) {
+  .lb-stage { padding: 0 8px 16px; }
+  .lb-nav { width: 36px; height: 52px; font-size: 26px; }
+  .lb-name { max-width: 30vw; }
+  .gallery .g-main { width: 88px; height: 88px; }
+  .gallery .g-strip { width: 88px; }
+  .gallery .g-strip img { width: 26px; height: 26px; }
+}
