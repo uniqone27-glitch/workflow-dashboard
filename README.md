@@ -84,6 +84,8 @@ workflow-dashboard/
 - **Vercel:** GitHub 저장소에 올린 뒤 Import → Framework `Other`, 빌드 명령 없음
 - **GitHub Pages:** 저장소 Settings → Pages → 브랜치 지정
 
+> **코드를 수정해 다시 배포할 때마다** 먼저 `python3 tools/stamp-version.py` 를 실행하세요. 파일 참조에 버전이 붙어, 브라우저 캐시 때문에 옛 파일과 새 파일이 섞이는 문제를 막습니다.
+
 배포 후 Supabase **Authentication → URL Configuration** 에서
 - *Site URL* 을 배포 주소로 변경
 - *Redirect URLs* 에 배포 주소 추가 (비밀번호 재설정 메일 링크용)
