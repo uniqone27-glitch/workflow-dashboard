@@ -382,3 +382,12 @@ img[data-zoom] { cursor: zoom-in; }
   .gallery .g-strip { width: 88px; }
   .gallery .g-strip img { width: 26px; height: 26px; }
 }
+
+/* ---------- 촬영 참고 이미지 선택 ---------- */
+.ref-field > .input { max-width: 320px; margin-bottom: 8px; }
+.ref-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 6px; }
+.ref-item { position: relative; display: flex; flex-direction: column; gap: 4px; border: 1.5px solid var(--line); border-radius: 10px; padding: 6px; cursor: pointer; background: var(--surface); }
+.ref-item:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.ref-item input { position: absolute; top: 10px; left: 10px; width: 18px; height: 18px; accent-color: var(--accent); }
+.ref-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: #f0f0f2; }
+.ref-item span { font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
