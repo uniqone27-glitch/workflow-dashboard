@@ -1,24 +1,34 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611181459';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611181539';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, OPTION_FIELDS, optionNames } from './constants.js?v=202611181459';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611181459';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611181459';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611181539';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611181539';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611181539';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
-function specInputs(list, specs = {}) {
-  return list.map((s) => `
-    <label class="field ${s.wide ? 'wide' : ''}"><span>${esc(s.label)}</span>
-      ${s.options ? `<select class="input" data-spec="${s.key}">${options(s.options, specs[s.key] || '', { empty: '선택' })}</select>`
-        : s.type === 'textarea' ? `<textarea class="input" rows="2" data-spec="${s.key}">${esc(specs[s.key] || '')}</textarea>`
-        : `<input class="input" data-spec="${s.key}" value="${esc(specs[s.key] || '')}">`}
-    </label>`).join('');
+// same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
+function specInputs(list, specs = {}, same = null) {
+  return list.map((s) => {
+    const isSame = same?.has(s.key);
+    const dis = isSame ? 'disabled' : '';
+    return `
+    <label class="field ${s.wide ? 'wide' : ''}"><span class="spec-label">${esc(s.label)}
+      ${same ? `<select class="same-sel" data-same="${s.key}">${options([['direct', '직접 입력'], ['same', '전 옵션 동일']], isSame ? 'same' : 'direct')}</select>` : ''}</span>
+      ${s.options ? `<select class="input" data-spec="${s.key}" ${dis}>${options(s.options, specs[s.key] || '', { empty: '선택' })}</select>`
+        : s.type === 'textarea' ? `<textarea class="input" rows="2" data-spec="${s.key}" ${dis}>${esc(specs[s.key] || '')}</textarea>`
+        : `<input class="input" data-spec="${s.key}" value="${esc(specs[s.key] || '')}" ${dis}>`}
+    </label>`;
+  }).join('');
 }
-const optVal = (o, k) => (k === 'color1' ? o.color1 || o.color || '' : o[k] || '');
-const optHead = `<div class="opt-row opt-head">${OPTION_FIELDS.map(([, l]) => `<span>${esc(l)}</span>`).join('')}<span></span></div>`;
-const optRow = (o = {}) => `<div class="opt-row">
-  ${OPTION_FIELDS.map(([k, l]) => `<input class="input" data-k="${k}" value="${esc(optVal(o, k))}" placeholder="${esc(l)}" aria-label="${esc(l)}">`).join('')}
-  <button type="button" class="icon-btn" data-rm>✕</button></div>`;
-const OPT_KEYS = OPTION_FIELDS.map(([k]) => k);
+// '전 옵션 동일' 항목을 바로 앞 옵션의 값으로 채운 결과
+function resolveVariants(variants) {
+  const out = [];
+  variants.forEach((v, n) => {
+    const r = { ...v };
+    (v._same || []).forEach((k) => { r[k] = n ? out[n - 1][k] ?? '' : ''; });
+    out.push(r);
+  });
+  return out;
+}
 const chgRow = (c = {}) => `<div class="chg-row">
   <input class="input" data-k="field" value="${esc(c.field || '')}" placeholder="변경 항목 (예: 프레임 두께)">
   <input class="input" data-k="before" value="${esc(c.before || '')}" placeholder="기존">
@@ -39,10 +49,6 @@ function productSection(p = {}, { withImages = true } = {}) {
     </div></fieldset>
     <fieldset><legend>카테고리별 세부 사양</legend>
       <div class="cat-specs"></div>
-      <h4>옵션별 사양 <small class="muted">사이즈·컬러·소재가 옵션별로 다르면 행을 추가하세요</small></h4>
-      ${optHead}
-      <div class="opt-rows">${(p.options || []).map(optRow).join('')}</div>
-      <button type="button" class="btn btn-sm" data-add-opt>+ 옵션 추가</button>
       <div class="chg-box">
         <h4>사양 변경사항 <small class="muted">리뉴얼 제품의 기존 → 변경 내용</small></h4>
         <div class="chg-rows">${(p.spec_changes || []).map(chgRow).join('')}</div>
@@ -73,7 +79,13 @@ function bindProductSection(root, p = {}) {
     else $$('[data-variant]', box).forEach((card, n) => {
       const v = st.variants[n] || (st.variants[n] = {});
       v.name = $('[data-vname]', card).value;
-      $$('[data-spec]', card).forEach((i) => { v[i.dataset.spec] = i.value; });
+      const same = new Set();
+      $$('[data-spec]', card).forEach((i) => {
+        const k = i.dataset.spec;
+        if ($(`[data-same="${k}"]`, card)?.value === 'same') same.add(k);
+        else v[k] = i.value;
+      });
+      v._same = [...same];
     });
   };
   sec._captureSpecs = capture;
@@ -84,15 +96,31 @@ function bindProductSection(root, p = {}) {
         <div class="seg-ctl"><button type="button" data-optmode="single" class="${st.mode === 'single' ? 'on' : ''}">단일 옵션</button>
           <button type="button" data-optmode="multi" class="${st.mode === 'multi' ? 'on' : ''}">다중 옵션</button></div></div>
       ${st.mode === 'single' ? `<div class="form-grid">${specInputs(list, st.single)}</div>`
-        : `<p class="muted small">옵션마다 사양을 따로 입력합니다.</p>${st.variants.map((v, n) => `
+        : `<p class="muted small">옵션마다 사양을 입력합니다. 두 번째 옵션부터는 항목별로 「전 옵션 동일」을 고르면 바로 앞 옵션의 값이 그대로 들어갑니다.</p>${resolveVariants(st.variants).map((v, n) => `
           <div class="variant-card" data-variant>
             <div class="variant-head"><b>옵션 ${n + 1}</b><input class="input" data-vname value="${esc(v.name || '')}" placeholder="옵션명 (예: 오크 1200)">
               <button type="button" class="icon-btn" data-rm-variant="${n}" title="옵션 삭제">✕</button></div>
-            <div class="form-grid">${specInputs(list, v)}</div>
+            <div class="form-grid">${specInputs(list, v, n ? new Set(v._same || []) : null)}</div>
           </div>`).join('')}
           <button type="button" class="btn btn-sm" data-add-variant>+ 옵션 추가</button>`}`;
   };
   catSel.addEventListener('change', () => { capture(); drawCat(); });
+  // '전 옵션 동일' 항목은 앞 옵션 값을 따라가도록 즉시 반영
+  const refreshSame = () => {
+    const cards = $$('[data-variant]', box);
+    cards.forEach((card, n) => {
+      if (!n) return;
+      $$('[data-same]', card).forEach((sel) => {
+        const k = sel.dataset.same;
+        const inp = $(`[data-spec="${k}"]`, card);
+        const same = sel.value === 'same';
+        inp.disabled = same;
+        if (same) inp.value = $(`[data-spec="${k}"]`, cards[n - 1])?.value ?? '';
+      });
+    });
+  };
+  box.addEventListener('input', refreshSame);
+  box.addEventListener('change', refreshSame);
   box.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -110,7 +138,6 @@ function bindProductSection(root, p = {}) {
   kindSel.addEventListener('change', chg);
   chg();
   sec.addEventListener('click', (e) => {
-    if (e.target.matches('[data-add-opt]')) $('.opt-rows', sec).insertAdjacentHTML('beforeend', optRow());
     if (e.target.matches('[data-add-chg]')) $('.chg-rows', sec).insertAdjacentHTML('beforeend', chgRow());
     if (e.target.matches('[data-rm]')) e.target.parentElement.remove();
   });
@@ -123,7 +150,12 @@ function readProductSection(root) {
   const st = sec._spec || { mode: 'single', single: {}, variants: [] };
   const trimObj = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, String(v ?? '').trim()]).filter(([, v]) => v));
   const specs = st.mode === 'multi'
-    ? { option_mode: 'multi', variants: st.variants.map(trimObj).filter((v) => Object.keys(v).length) }
+    ? { option_mode: 'multi', variants: resolveVariants(st.variants).map((v) => {
+        const { _same, ...rest } = v;
+        const o = trimObj(rest);
+        if (_same?.length) o._same = _same;
+        return o;
+      }).filter((v) => Object.keys(v).some((k) => k !== '_same')) }
     : trimObj(st.single);
   const rows = (sel, keys) => $$(sel, sec).map((r) => Object.fromEntries(keys.map((k) => [k, $(`[data-k=${k}]`, r).value.trim()])))
     .filter((o) => Object.values(o).some(Boolean));
@@ -132,7 +164,6 @@ function readProductSection(root) {
     brand_id: basic.brand_id ? Number(basic.brand_id) : null,
     arrival_qty: basic.arrival_qty != null && basic.arrival_qty !== '' ? Number(basic.arrival_qty) : null,
     specs,
-    options: rows('.opt-row:not(.opt-head)', OPT_KEYS),
     spec_changes: rows('.chg-row', ['field', 'before', 'after']),
     spec_notes: $('[data-pnote]', sec).value.trim() || null,
   };
@@ -287,6 +318,9 @@ function readPkgState(root) {
   };
 }
 
+// 목록에서 빠진 예전 값이 기존 요청에 있으면 수정 화면에서도 보이도록 유지
+const keep = (list, cur) => [...list, ...[].concat(cur || []).filter((v) => v && !list.includes(v))];
+
 // ---------------------------------------------------------------- 요청 폼
 const MULTI_TYPE_HINT = '여러 개 선택하면 유형별로 업무가 각각 생성됩니다.';
 
@@ -317,14 +351,14 @@ function requestFields(kind, r, { create, multiType }) {
     const optNames = optionNames(p);
     return `
     <fieldset><legend>촬영 요청 내용</legend><div class="form-grid">
-      <label class="field"><span>촬영 목적 <b class="req">*</b></span><select class="input" name="purpose" required>${options(SHOOT_PURPOSES, r.purpose, { empty: '선택' })}</select></label>
-      <label class="field"><span>목적 직접 입력</span><input class="input" name="purpose_etc" value="${esc(r.purpose_etc || '')}"></label>
-      <div class="field wide"><span>촬영 유형 <b class="req">*</b> <small class="muted">복수 선택</small></span>${checks('shoot_types', SHOOT_TYPES, r.shoot_types || [])}</div>
-      <label class="field wide"><span>기타 촬영 유형</span><input class="input" name="shoot_types_etc" value="${esc(r.shoot_types_etc || '')}"></label>
+      <label class="field"><span>촬영 목적 <b class="req">*</b></span><select class="input" name="purpose" required>${options(keep(SHOOT_PURPOSES, r.purpose), r.purpose, { empty: '선택' })}</select></label>
+      <label class="field"><span>직접 입력(기타 선택 시)</span><input class="input" name="purpose_etc" value="${esc(r.purpose_etc || '')}"></label>
+      <div class="field wide"><span>촬영 유형 <b class="req">*</b> <small class="muted">복수 선택</small></span>${checks('shoot_types', keep(SHOOT_TYPES, r.shoot_types), r.shoot_types || [])}</div>
+      <label class="field wide"><span>직접 입력(기타 선택 시)</span><input class="input" name="shoot_types_etc" value="${esc(r.shoot_types_etc || '')}"></label>
       <label class="field"><span>촬영 장소</span><select class="input" name="location">${options(SHOOT_LOCATIONS, r.location, { empty: '선택' })}</select></label>
       <label class="field"><span>직접 입력(기타 선택 시)</span><input class="input" name="location_etc" value="${esc(r.location_etc || '')}"></label>
       <div class="field wide shoot-opts"><span>촬영 제품 옵션</span>${optNames.length ? checks('shoot_options', optNames, r.shoot_options || []) : '<small class="muted">등록된 옵션이 없습니다.</small>'}</div>
-      <label class="field"><span>촬영 수량 (컷)</span><input class="input" type="number" min="0" name="quantity" value="${esc(r.quantity ?? '')}"></label>
+      <label class="field"><span>촬영 최소 수량(컷)</span><input class="input" type="number" min="0" name="quantity" value="${esc(r.quantity ?? '')}"></label>
       <label class="field"><span>촬영 희망일</span><input class="input" type="date" name="desired_shoot_date" value="${esc(r.desired_shoot_date || '')}"></label>
       <label class="field wide"><span>촬영 유의사항</span><textarea class="input" rows="2" name="caution">${esc(r.caution || '')}</textarea></label>
       <label class="field wide"><span>촬영 레퍼런스 URL</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>

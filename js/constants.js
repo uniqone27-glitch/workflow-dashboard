@@ -35,8 +35,8 @@ export const KINDS = {
 };
 
 export const PACKAGE_TYPES = ['제품 박스', '라벨', '스티커', '설명서', '기타'];
-export const SHOOT_PURPOSES = ['신제품 론칭', '제품 리뉴얼', '상세페이지 개선', '썸네일 변경', '광고 콘텐츠 제작', 'SNS 콘텐츠 제작', '기타'];
-export const SHOOT_TYPES = ['제품 누끼 촬영', '제품 단독 연출 촬영', '공간 스타일링 촬영', '제품 디테일 촬영', '기능 시연 촬영', '영상 촬영', '기타'];
+export const SHOOT_PURPOSES = ['신제품 론칭', '제품 리뉴얼', '영상 제작', '기타'];
+export const SHOOT_TYPES = ['호리존 촬영', '콘셉트 촬영(세트장 연출)', '제품 디테일 추가 촬영', '영상 촬영', '기타'];
 export const SHOOT_LOCATIONS = ['외부 스튜디오', '쇼룸', '기타'];
 export const CHANNELS = ['자사몰', '스마트스토어', '쿠팡', '오늘의집', '인스타그램', '유튜브', '메타 광고', '네이버 광고', '기타'];
 
@@ -126,8 +126,8 @@ export const CATEGORY_SPECS = {
     ETC,
   ],
   매트리스: [
-    { key: 'bed_size', label: '사이즈 규격', options: ['SS', 'Q', 'K', 'LK', '기타'] },
-    DIM('폭 × 길이 × 두께 (mm)'),
+    { key: 'bed_size', label: '옵션', options: ['SS', 'Q', 'K', 'LK', '기타'] },
+    { key: 'dimension', label: '사이즈(폭 × 길이 × 두께)mm' },
     { key: 'mattress_type', label: '매트리스 유형', options: ['독립 스프링', '본넬 스프링', '폼(메모리·라텍스)', '하이브리드', '기타'] },
     { key: 'firmness', label: '경도', options: ['소프트', '미디엄 소프트', '미디엄', '미디엄 하드', '하드'] },
     { key: 'inner', label: '내장재 구성' },
@@ -241,7 +241,7 @@ export const FIELD_LABELS = {
   package_spec: '패키지 규격(mm)', required_text: '필수 기재 문구', print_notes: '인쇄 유의사항',
   reference_url: '레퍼런스 URL', request_note: '추가 요청사항', purpose: '목적', purpose_etc: '목적(기타)',
   shoot_types: '촬영 유형', shoot_types_etc: '촬영 유형(기타)', location: '촬영 장소', location_etc: '촬영 장소(기타)',
-  shoot_options: '촬영 옵션', quantity: '촬영 수량', caution: '유의사항', desired_shoot_date: '촬영 희망일',
+  shoot_options: '촬영 옵션', quantity: '촬영 최소 수량', caution: '유의사항', desired_shoot_date: '촬영 희망일',
   work_type: '작업 유형', title: '작업명', channels: '사용 위치', channels_etc: '사용 위치(기타)',
   plan_url: '기획안 URL', brand_id: '브랜드', product_id: '제품', shoot_request_id: '연결 촬영',
   online_name: '온라인 제품명', retail_name: '유통 제품명', sku: '제품 코드/SKU', category: '카테고리',

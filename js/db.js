@@ -96,7 +96,7 @@ export function supabaseBackend(url, anonKey) {
 // 체험 모드 (서버 없이 화면/흐름 확인용) — 서버의 트리거 동작을 간단히 흉내냅니다.
 // ---------------------------------------------------------------------------
 export function demoBackend() {
-  const KEY = 'wf-demo-db-v2';
+  const KEY = 'wf-demo-db-v3';
   const bc = 'BroadcastChannel' in window ? new BroadcastChannel('wf-demo') : null;
   const listeners = [];
   const blobs = {};
@@ -337,7 +337,7 @@ export function demoBackend() {
         base({ id: 'k3', code: 'PKG-DEMO-0003', product_id: 'p3', design_type: '설명서', priority: '보통', due_date: d(-5), requester_id: 'u-log', status: '완료', assignee_id: 'u-design2', completed_date: d(-6), created_at: ts(-14) }),
       ],
       shoot_requests: [
-        base({ id: 's1', code: 'SHT-DEMO-0001', product_id: 'p3', purpose: '신제품 론칭', shoot_types: ['제품 누끼 촬영', '공간 스타일링 촬영'], location: '사내 스튜디오', shoot_options: [], quantity: 30, priority: '높음', due_date: d(3), requester_id: 'u-brand', status: '작업중', assignee_id: 'u-design2', scheduled_date: d(1), created_at: ts(-4) }),
+        base({ id: 's1', code: 'SHT-DEMO-0001', product_id: 'p3', purpose: '신제품 론칭', shoot_types: ['호리존 촬영', '콘셉트 촬영(세트장 연출)'], location: '외부 스튜디오', shoot_options: [], quantity: 30, priority: '높음', due_date: d(3), requester_id: 'u-brand', status: '작업중', assignee_id: 'u-design2', scheduled_date: d(1), created_at: ts(-4) }),
       ],
       design_requests: [
         base({ id: 'd1', code: 'DSN-DEMO-0001', brand_id: 1, product_id: 'p3', shoot_request_id: 's1', work_type: '상세페이지 신규 제작', title: 'X프레임 책장 상세페이지', purpose: '신제품 론칭', channels: ['자사몰', '스마트스토어', '오늘의집'], plan_url: 'https://www.figma.com/', priority: '높음', due_date: d(9), requester_id: 'u-brand', created_at: ts(-2) }),

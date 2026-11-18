@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611181459';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611181459';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611181459';
-import { openRequestForm, openProductForm } from './forms.js?v=202611181459';
-import { launchSummary, progCell, histText } from './views.js?v=202611181459';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611181539';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611181539';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611181539';
+import { openRequestForm, openProductForm } from './forms.js?v=202611181539';
+import { launchSummary, progCell, histText } from './views.js?v=202611181539';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -249,7 +249,7 @@ function renderRequest(panel, kind, id) {
       ['촬영 목적', esc(r.purpose) + (r.purpose_etc ? ` (${esc(r.purpose_etc)})` : '')],
       ['촬영 유형', esc((r.shoot_types || []).join(', ')) + (r.shoot_types_etc ? ` (${esc(r.shoot_types_etc)})` : '')],
       ['촬영 장소', esc(r.location || '-') + (r.location_etc ? ` (${esc(r.location_etc)})` : '')],
-      ['촬영 제품 옵션', esc((r.shoot_options || []).join(', ') || '-')], ['촬영 수량', r.quantity ?? '-'],
+      ['촬영 제품 옵션', esc((r.shoot_options || []).join(', ') || '-')], ['촬영 최소 수량(컷)', r.quantity ?? '-'],
       ['촬영 희망일', fmtDate(r.desired_shoot_date)],
       ['촬영 유의사항', nl(r.caution), true], ['레퍼런스 URL', linkify(r.reference_url), true], ['추가 요청사항', nl(r.request_note), true],
     ],
@@ -397,7 +397,7 @@ function renderProduct(panel, pid) {
   const rerender = () => { const t = el.scrollTop; renderProduct(panel, pid); el.scrollTop = t; };
   const specList = [...COMMON_SPECS, ...(CATEGORY_SPECS[p.category] || [])];
   const specFields = (o) => {
-    const extra = Object.keys(o).filter((k) => !['option_mode', 'variants', 'name'].includes(k) && !specList.some((x) => x.key === k) && o[k]);
+    const extra = Object.keys(o).filter((k) => !['option_mode', 'variants', 'name', '_same'].includes(k) && !specList.some((x) => x.key === k) && o[k]);
     const rows = [...specList.filter((x) => o[x.key]).map((x) => [esc(x.label), esc(o[x.key]), x.wide]), ...extra.map((k) => [esc(k), esc(o[k])])];
     return rows.length ? fields(rows) : '<p class="muted small">입력된 사양이 없습니다.</p>';
   };

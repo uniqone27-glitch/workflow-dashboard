@@ -1,9 +1,9 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611181459';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611181459';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611181459';
-import { openDetail, openProduct } from './detail.js?v=202611181459';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611181459';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611181539';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611181539';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611181539';
+import { openDetail, openProduct } from './detail.js?v=202611181539';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611181539';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -382,7 +382,9 @@ function adminView(route, el) {
       <div class="grid-2">
         <div class="card"><div class="card-head"><h3>브랜드</h3></div>
           <div class="list-edit">${S.data.brands.map((b) => `<div class="li"><span>${esc(b.name)}</span>
-            <label class="check"><input type="checkbox" data-brand="${b.id}" ${b.active ? 'checked' : ''}><span>사용</span></label></div>`).join('')}</div>
+            <label class="check"><input type="checkbox" data-brand="${b.id}" ${b.active ? 'checked' : ''}><span>사용</span></label>
+            <button class="btn-link danger" data-del-brand="${b.id}">삭제</button></div>`).join('')}</div>
+          <p class="muted small">제품·업무에 쓰인 브랜드는 삭제할 수 없습니다. 더 이상 쓰지 않으면 「사용」 체크를 해제하세요.</p>
           <form class="row gap" id="add-brand"><input class="input" name="name" placeholder="새 브랜드명" required><button class="btn">추가</button></form>
         </div>
         <div class="card"><div class="card-head"><h3>디자인 작업 유형</h3></div>
@@ -408,6 +410,14 @@ function adminView(route, el) {
     }));
     $$('[data-brand]', el).forEach((c) => c.addEventListener('change', () =>
       act(() => S.db.update('brands', { id: Number(c.dataset.brand) }, { active: c.checked }).then(() => loadTable('brands')), '저장했습니다.')));
+    $$('[data-del-brand]', el).forEach((b) => b.addEventListener('click', async () => {
+      const id = Number(b.dataset.delBrand);
+      const br = S.data.brands.find((x) => x.id === id);
+      const used = S.data.products.filter((p) => p.brand_id === id).length + S.data.design_requests.filter((r) => r.brand_id === id).length;
+      if (used) return toast(`「${br.name}」 브랜드는 제품·업무 ${used}건에서 사용 중이라 삭제할 수 없습니다. 「사용」 체크를 해제해 숨겨 주세요.`, 'error');
+      if (!(await confirmBox(`「${br.name}」 브랜드를 삭제할까요?`, { danger: true, ok: '삭제' }))) return;
+      act(() => S.db.remove('brands', { id }).then(() => loadTable('brands')).then(draw), '브랜드를 삭제했습니다.');
+    }));
     $$('[data-wt]', el).forEach((b) => b.addEventListener('click', () =>
       act(() => S.db.remove('design_work_types', { name: b.dataset.wt }).then(() => loadTable('design_work_types')).then(draw), '삭제했습니다.')));
     $('#add-brand', el).addEventListener('submit', (e) => {
