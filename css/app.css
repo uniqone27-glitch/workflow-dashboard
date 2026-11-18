@@ -391,3 +391,26 @@ img[data-zoom] { cursor: zoom-in; }
 .ref-item input { position: absolute; top: 10px; left: 10px; width: 18px; height: 18px; accent-color: var(--accent); }
 .ref-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: #f0f0f2; }
 .ref-item span { font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- v1.1: 세부 사양 단일/다중 옵션, 옵션 표 머리글, 다중 패키지, 파일 칩 ---------- */
+.cat-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 10px; }
+.cat-head h4 { margin: 0; }
+.variant-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: var(--surface-2); }
+.variant-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 32px; align-items: center; gap: 8px; margin-bottom: 10px; }
+.variant-view { margin-top: 6px; }
+.variant-view b { font-size: 12px; }
+.opt-row { grid-template-columns: repeat(5, minmax(0, 1fr)) 32px; }
+.opt-head span { font-size: 11px; color: var(--text-2); padding-left: 2px; }
+.seg-ctl.sm { margin-bottom: 8px; align-self: flex-start; }
+.pkg-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 32px; gap: 6px; margin-bottom: 6px; align-items: center; }
+.file-chip { display: inline-flex; align-items: center; gap: 6px; }
+.file-chip img { width: 22px; height: 22px; object-fit: cover; border-radius: 4px; }
+.chip-x { border: 0; background: none; cursor: pointer; color: var(--text-3); font-size: 11px; padding: 0 0 0 2px; line-height: 1; }
+.chip-x:hover { color: var(--danger, #d70015); }
+.file-list.existing { margin: 0 0 8px; }
+@media (max-width: 760px) {
+  .opt-row { grid-template-columns: 1fr 1fr 32px; }
+  .opt-head { display: none; }
+  .pkg-row { grid-template-columns: 1fr 32px; }
+  .pkg-row [data-pk=spec] { grid-column: 1 / 2; }
+}
