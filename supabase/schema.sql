@@ -10,12 +10,14 @@ create extension if not exists pgcrypto;
 -- 1. 사용자 / 권한
 -- ---------------------------------------------------------------------
 create table public.profiles (
-  id         uuid primary key references auth.users(id) on delete cascade,
+  -- auth.users 를 참조하지만 FK 는 두지 않음: 사용자를 삭제해도 이력의 작성자 이름은 남김
+  id         uuid primary key,
   email      text,
   name       text not null default '',
   role       text not null default 'pending'
              check (role in ('pending','admin','logistics','brand','design')),
   active     boolean not null default true,
+  deleted_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -66,6 +68,25 @@ end $$;
 create trigger trg_guard_profile before update on public.profiles
   for each row execute function public.guard_profile();
 
+-- 관리자 전용: 사용자 삭제 (로그인 계정 삭제, 이름은 이력 표시용으로 보존)
+create or replace function public.admin_delete_user(target uuid) returns void
+language plpgsql security definer set search_path = public, auth as $$
+begin
+  if coalesce(public.my_role(), '') <> 'admin' then
+    raise exception '권한이 없습니다: 사용자 삭제는 관리자만 할 수 있습니다.';
+  end if;
+  if target = auth.uid() then
+    raise exception '본인 계정은 삭제할 수 없습니다.';
+  end if;
+  update public.profiles
+     set active = false, role = 'pending', email = null, deleted_at = now()
+   where id = target;
+  delete from public.drafts where user_id = target;
+  delete from auth.users where id = target;
+end $$;
+revoke all on function public.admin_delete_user(uuid) from public, anon;
+grant execute on function public.admin_delete_user(uuid) to authenticated;
+
 -- ---------------------------------------------------------------------
 -- 2. 기준 정보 (브랜드, 디자인 작업 유형)
 -- ---------------------------------------------------------------------
@@ -76,7 +97,7 @@ create table public.brands (
   active     boolean not null default true,
   created_at timestamptz not null default now()
 );
-insert into public.brands (name, sort) values ('퍼니츠', 1), ('뽀뽀백번', 2);
+insert into public.brands (name, sort) values ('퍼니츠', 1), ('뽀뽀백번', 2), ('유통', 3);
 
 create table public.design_work_types (
   name       text primary key,
