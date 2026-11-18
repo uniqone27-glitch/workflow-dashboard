@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611172250';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel } from './constants.js?v=202611172250';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611172250';
-import { openRequestForm, openProductForm } from './forms.js?v=202611172250';
-import { launchSummary, progCell, histText } from './views.js?v=202611172250';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611181459';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611181459';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611181459';
+import { openRequestForm, openProductForm } from './forms.js?v=202611181459';
+import { launchSummary, progCell, histText } from './views.js?v=202611181459';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -76,6 +76,21 @@ export function productGallery(pid) {
   return `<div class="gallery" data-gallery>${zoomImg(imgs[0], 'g-main')}
     ${rest.length ? `<div class="g-strip">${rest.map((a) => zoomImg(a)).join('')}</div>` : ''}
     ${imgs.length > 1 ? `<span class="g-more">이미지 ${imgs.length}장 · 클릭해 확대</span>` : '<span class="g-more">클릭해 확대</span>'}</div>`;
+}
+
+// 제품 사양 요약 (단일 옵션 / 다중 옵션 모두 지원)
+export function specSummary(p) {
+  const list = [...COMMON_SPECS, ...(CATEGORY_SPECS[p.category] || [])];
+  const sp = p.specs || {};
+  const dl = (o) => {
+    const rows = list.filter((s) => o[s.key]);
+    return rows.length ? `<dl class="spec-mini">${rows.map((s) => `<div><dt>${esc(s.label)}</dt><dd>${esc(o[s.key])}</dd></div>`).join('')}</dl>` : '';
+  };
+  const body = sp.option_mode === 'multi'
+    ? (sp.variants || []).map((v, i) => `<div class="variant-view"><b>${esc(v.name || `옵션 ${i + 1}`)}</b>${dl(v)}</div>`).join('')
+    : dl(sp);
+  const opts = (p.options || []).map(optionLabel).filter(Boolean);
+  return `${body}${opts.length ? `<div class="small"><b>옵션</b> ${opts.map(esc).join(' · ')}</div>` : ''}`;
 }
 
 const isImage = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg)$/i.test(a.file_name);
@@ -191,15 +206,13 @@ function fields(rows) {
 
 function productCard(p, { specs = false } = {}) {
   if (!p) return '<div class="product-card muted">연결된 제품 없음</div>';
-  const specRows = specs ? [...COMMON_SPECS, ...(CATEGORY_SPECS[p.category] || [])].filter((s) => p.specs?.[s.key]) : [];
   return `<div class="product-card">
     ${productGallery(p.id)}
     <div class="grow">
       <div class="muted small">${esc(brandName(p.brand_id))} · ${esc(p.category)} · ${esc(p.product_kind)} · <span class="mono">${esc(p.code)}</span></div>
       <strong>${esc(pname(p))}</strong>
       <div class="small">${p.online_name && p.online_name !== p.retail_name ? `온라인: ${esc(p.online_name)} · ` : ''}입고 예정 ${fmtDate(p.arrival_date)}${p.arrival_qty != null ? ` · ${esc(p.arrival_qty)}개` : ''}</div>
-      ${specRows.length ? `<dl class="spec-mini">${specRows.map((s) => `<div><dt>${esc(s.label)}</dt><dd>${esc(p.specs[s.key])}</dd></div>`).join('')}</dl>` : ''}
-      ${specs && p.options?.length ? `<div class="small"><b>옵션</b> ${p.options.map((o) => esc([o.name, o.color, o.size, o.material].filter(Boolean).join(' / '))).join(' · ')}</div>` : ''}
+      ${specs ? specSummary(p) : ''}
       ${specs && p.spec_notes ? `<div class="small"><b>특이사항</b> ${nl(p.spec_notes)}</div>` : ''}
       <button class="btn-link" data-open-product="${p.id}">제품 상세 · 연관 업무 보기 →</button>
     </div>
@@ -229,7 +242,7 @@ function renderRequest(panel, kind, id) {
   const reqRows = {
     package: [
       ['디자인 유형', esc(r.design_type) + (r.design_type_etc ? ` (${esc(r.design_type_etc)})` : '')],
-      ['패키지 규격', nl(r.package_spec)], ['필수 기재 문구', nl(r.required_text), true], ['인쇄 유의사항', nl(r.print_notes), true],
+      ['패키지 규격(mm)', nl(r.package_spec), true], ['필수 기재 문구', nl(r.required_text), true], ['인쇄 유의사항', nl(r.print_notes), true],
       ['디자인 레퍼런스 URL (카피 제품)', linkify(r.reference_url), true], ['추가 요청사항', nl(r.request_note), true],
     ],
     shoot: [
@@ -383,7 +396,15 @@ function renderProduct(panel, pid) {
   const l = s.l;
   const rerender = () => { const t = el.scrollTop; renderProduct(panel, pid); el.scrollTop = t; };
   const specList = [...COMMON_SPECS, ...(CATEGORY_SPECS[p.category] || [])];
-  const extraSpecKeys = Object.keys(p.specs || {}).filter((k) => !specList.some((x) => x.key === k) && p.specs[k]);
+  const specFields = (o) => {
+    const extra = Object.keys(o).filter((k) => !['option_mode', 'variants', 'name'].includes(k) && !specList.some((x) => x.key === k) && o[k]);
+    const rows = [...specList.filter((x) => o[x.key]).map((x) => [esc(x.label), esc(o[x.key]), x.wide]), ...extra.map((k) => [esc(k), esc(o[k])])];
+    return rows.length ? fields(rows) : '<p class="muted small">입력된 사양이 없습니다.</p>';
+  };
+  const sp = p.specs || {};
+  const legacyOpt = (p.options || []).some((o) => o.name || o.note);
+  const optCols = [...(legacyOpt ? [['name', '옵션명']] : []), ...OPTION_FIELDS, ...(legacyOpt ? [['note', '비고']] : [])];
+  const optVal = (o, k) => (k === 'color1' ? o.color1 || o.color : o[k]);
   const reqList = (kind, list) => list.length ? list.map((r) => `
     <button class="mini-row" data-open-req="${kind}:${r.id}"><span class="grow"><strong>${esc(kind === 'design' ? r.title : requestType({ ...r, _kind: kind }))}</strong>
       <small>${esc(r.code)} · ${esc(profileName(r.assignee_id))} · 희망 ${fmtDate(r.due_date)}</small></span>${statusPill(r.status, r.cancelled)}</button>`).join('') : '<p class="muted small">없음</p>';
@@ -414,17 +435,19 @@ function renderProduct(panel, pid) {
         <section class="section"><h3>기본 정보</h3>
           ${fields([
             ['브랜드', esc(brandName(p.brand_id))], ['카테고리', esc(p.category)],
-            ['유통 제품명', esc(p.retail_name || '-'), true], ['온라인 제품명', esc(p.online_name || '-'), true],
+            ['유통 제품명', esc(p.retail_name || '-'), true], p.online_name ? ['온라인 제품명', esc(p.online_name), true] : null,
             ['요청 구분', esc(p.product_kind)], ['제품 관리번호', `<span class="mono">${esc(p.code)}</span>`],
-            ['입고 예정일', fmtDate(p.arrival_date)], ['입고 예정 수량', p.arrival_qty != null ? `${esc(p.arrival_qty)}개` : '-'],
+            ['입고 예정일', fmtDate(p.arrival_date)], ['입고 예정 수량(옵션 총 수량 합계)', p.arrival_qty != null ? `${esc(p.arrival_qty)}개` : '-'],
             ['등록', `${esc(profileName(p.created_by))} · ${fmtDateTime(p.created_at)}`, true],
             ['최종 수정', `${esc(profileName(p.updated_by))} · ${fmtDateTime(p.updated_at)}`, true],
           ])}
         </section>
-        <section class="section"><h3>상세 사양</h3>
-          ${fields([...specList.map((x) => [esc(x.label), esc(p.specs?.[x.key] || ''), x.wide]), ...extraSpecKeys.map((k) => [esc(k), esc(p.specs[k])])])}
-          ${p.options?.length ? `<h4>옵션별 사양</h4><div class="table-scroll"><table class="table compact"><thead><tr><th>옵션명</th><th>컬러</th><th>사이즈</th><th>소재</th><th>비고</th></tr></thead>
-            <tbody>${p.options.map((o) => `<tr><td>${esc(o.name)}</td><td>${esc(o.color)}</td><td>${esc(o.size)}</td><td>${esc(o.material)}</td><td>${esc(o.note)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+        <section class="section"><h3>${esc(p.category)} 세부 사양 <span class="muted small">${sp.option_mode === 'multi' ? '다중 옵션' : '단일 옵션'}</span></h3>
+          ${sp.option_mode === 'multi'
+            ? (sp.variants || []).map((v, i) => `<h4>${esc(v.name || `옵션 ${i + 1}`)}</h4>${specFields(v)}`).join('') || '<p class="muted small">입력된 사양이 없습니다.</p>'
+            : specFields(sp)}
+          ${p.options?.length ? `<h4>옵션별 사양</h4><div class="table-scroll"><table class="table compact"><thead><tr>${optCols.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead>
+            <tbody>${p.options.map((o) => `<tr>${optCols.map(([k]) => `<td>${esc(optVal(o, k) || '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
           ${p.spec_changes?.length ? `<h4>사양 변경사항 (리뉴얼)</h4><div class="table-scroll"><table class="table compact changes"><thead><tr><th>항목</th><th>기존</th><th></th><th>변경</th></tr></thead>
             <tbody>${p.spec_changes.map((c) => `<tr><td>${esc(c.field)}</td><td class="before">${esc(c.before)}</td><td>→</td><td class="after">${esc(c.after)}</td></tr>`).join('')}</tbody></table></div>
             <p class="muted small">기존 상세페이지·썸네일·영상의 수정 필요 여부를 확인하세요.</p>` : ''}

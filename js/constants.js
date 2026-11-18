@@ -54,7 +54,7 @@ export const COMMON_SPECS = [
 const YN = ['있음', '없음'];
 
 // 카테고리별 상세 사양 (카테고리 추가 시 여기에 항목을 정의)
-const DIM = (label = '가로 × 깊이 × 높이 (mm)') => ({ key: 'dimension', label });
+const DIM = (dims = '가로 × 깊이 × 높이') => ({ key: 'dimension', label: `사이즈(mm) ${dims.replace(/\s*\(mm\)\s*$/, '')}` });
 const ETC = { key: 'etc_function', label: '기타 기능' };
 export const CATEGORY_SPECS = {
   테이블: [
@@ -64,8 +64,8 @@ export const CATEGORY_SPECS = {
     { key: 'under_frame_material', label: '상판 하부 프레임 소재' },
     { key: 'leg_material', label: '다리/프레임 소재' },
     DIM('가로 × 세로 × 높이 (mm)'),
-    { key: 'top_thickness', label: '상판 두께' },
-    { key: 'frame_thickness', label: '프레임 두께' },
+    { key: 'top_thickness', label: '상판 두께(mm)' },
+    { key: 'frame_thickness', label: '프레임 두께(mm)' },
     { key: 'shape', label: '디자인 형태', options: ['직선', '유선', '라운드', '아치형', '기타'] },
     { key: 'leveler', label: '조절발 유무', options: YN },
     { key: 'assembly', label: '조립 방식', options: ['완제품', '반조립', 'DIY 조립'] },
@@ -78,8 +78,8 @@ export const CATEGORY_SPECS = {
     { key: 'back_material', label: '등받이 소재' },
     { key: 'frame_material', label: '프레임 소재' },
     DIM('전체 폭 × 깊이 × 높이 (mm)'),
-    { key: 'seat_height', label: '좌판 높이' },
-    { key: 'seat_thickness', label: '좌판 두께' },
+    { key: 'seat_height', label: '좌판 높이(mm)' },
+    { key: 'seat_thickness', label: '좌판 두께(mm)' },
     { key: 'back_design', label: '등받이 디자인' },
     { key: 'armrest', label: '팔걸이 유무', options: YN },
     { key: 'swivel', label: '회전 기능 유무', options: YN },
@@ -92,7 +92,7 @@ export const CATEGORY_SPECS = {
     { key: 'top_material', label: '상판 소재' },
     { key: 'frame_material', label: '프레임/다리 소재' },
     DIM('가로 × 깊이 × 높이 (mm)'),
-    { key: 'top_thickness', label: '상판 두께' },
+    { key: 'top_thickness', label: '상판 두께(mm)' },
     { key: 'height_adjust', label: '높이 조절', options: ['고정', '수동 조절', '전동 조절'] },
     { key: 'storage', label: '수납 구성 (서랍·선반)' },
     { key: 'cable', label: '배선 정리 기능', options: YN },
@@ -107,7 +107,7 @@ export const CATEGORY_SPECS = {
     { key: 'frame_material', label: '프레임 소재' },
     { key: 'filling', label: '충전재 (쿠션 구성)' },
     DIM('폭 × 깊이 × 높이 (mm)'),
-    { key: 'seat_height', label: '좌석 높이' },
+    { key: 'seat_height', label: '좌석 높이(mm)' },
     { key: 'seats', label: '인승', options: ['1인', '2인', '3인', '4인 이상', '모듈형'] },
     { key: 'cover', label: '커버 분리 세탁', options: ['가능', '불가'] },
     { key: 'reclining', label: '리클라이닝', options: YN },
@@ -119,7 +119,7 @@ export const CATEGORY_SPECS = {
     { key: 'frame_material', label: '프레임 소재' },
     { key: 'bed_size', label: '사이즈 규격', options: ['SS', 'Q', 'K', 'LK', '기타'] },
     DIM('폭 × 길이 × 높이 (mm)'),
-    { key: 'under_height', label: '하부 높이' },
+    { key: 'under_height', label: '하부 높이(mm)' },
     { key: 'slat', label: '깔판 구조' },
     { key: 'storage', label: '수납 기능', options: YN },
     { key: 'headboard_light', label: '헤드 조명·콘센트', options: YN },
@@ -152,7 +152,7 @@ export const CATEGORY_SPECS = {
     { key: 'front_color', label: '서랍 전면 컬러' },
     { key: 'body_material', label: '본체 소재' },
     DIM('가로 × 깊이 × 높이 (mm)'),
-    { key: 'drawer_count', label: '서랍 개수 (단수)' },
+    { key: 'drawer_count', label: '서랍 개수(단)' },
     { key: 'rail', label: '레일 종류', options: ['볼레일', '언더레일', '댐핑레일', '우드레일', '기타'] },
     { key: 'handle', label: '손잡이 형태' },
     { key: 'anti_tip', label: '전도 방지 장치', options: YN },
@@ -165,8 +165,8 @@ export const CATEGORY_SPECS = {
     { key: 'shelf_material', label: '선반 소재' },
     { key: 'frame_material', label: '프레임 소재' },
     DIM('가로 × 깊이 × 높이 (mm)'),
-    { key: 'shelf_count', label: '선반 개수 (단수)' },
-    { key: 'load', label: '선반당 내하중' },
+    { key: 'shelf_count', label: '선반 개수(단)' },
+    { key: 'load', label: '선반당 내하중(kg)' },
     { key: 'install', label: '설치 방식', options: ['스탠드형', '벽걸이형', '코너형'] },
     { key: 'wall_fix', label: '벽 고정 여부', options: ['필요', '선택', '불필요'] },
     ETC,
@@ -177,9 +177,9 @@ export const CATEGORY_SPECS = {
     { key: 'shelf_material', label: '선반/본체 소재' },
     { key: 'frame_material', label: '프레임 소재' },
     DIM('가로 × 깊이 × 높이 (mm)'),
-    { key: 'shelf_thickness', label: '선반 두께' },
-    { key: 'shelf_gap', label: '선반 간격' },
-    { key: 'shelf_count', label: '선반 개수' },
+    { key: 'shelf_thickness', label: '선반 두께(mm)' },
+    { key: 'shelf_gap', label: '선반 간격(mm)' },
+    { key: 'shelf_count', label: '선반 개수(단)' },
     { key: 'reinforcement', label: '보강 구조 (X 와이어 등)' },
     { key: 'wall_fix', label: '벽 고정 여부', options: ['필요', '선택', '불필요'] },
     ETC,
@@ -190,7 +190,7 @@ export const CATEGORY_SPECS = {
     DIM('가로 × 깊이 × 높이 (mm)'),
     { key: 'mirror', label: '거울 구성', options: ['일체형', '분리형', '접이식', '없음'] },
     { key: 'light', label: '조명 (LED)', options: YN },
-    { key: 'drawer_count', label: '서랍 개수' },
+    { key: 'drawer_count', label: '서랍 개수(개)' },
     { key: 'outlet', label: '콘센트', options: YN },
     { key: 'stool', label: '스툴 포함', options: ['포함', '미포함'] },
     ETC,
@@ -202,13 +202,30 @@ export const CATEGORY_SPECS = {
     { key: 'frame_material', label: '다리/프레임 소재' },
     { key: 'seat_shape', label: '좌판 형태', options: ['원형', '사각', '비정형'] },
     DIM('지름(폭) × 높이 (mm)'),
-    { key: 'seat_height', label: '좌판 높이' },
+    { key: 'seat_height', label: '좌판 높이(mm)' },
     { key: 'stackable', label: '적재(스태킹) 가능', options: ['가능', '불가'] },
     { key: 'storage', label: '수납 기능', options: YN },
     ETC,
   ],
 };
 export const CATEGORIES = Object.keys(CATEGORY_SPECS);
+
+// 옵션별 사양 입력 칸 (순서대로 표시)
+export const OPTION_FIELDS = [
+  ['size', '사이즈(mm)'],
+  ['color1', '컬러1(상판/쿠션)'],
+  ['color2', '컬러2(상판 하부 프레임)'],
+  ['color3', '컬러3(프레임)'],
+  ['material', '소재'],
+];
+// 옵션 표시명 (이전 버전의 name/color 값도 지원)
+export const optionLabel = (o = {}) => o.name || [o.size, o.color1 || o.color, o.color2, o.color3, o.material].filter(Boolean).join(' / ');
+// 제품의 옵션 목록 (옵션별 사양 행 → 없으면 다중 옵션 세부 사양의 옵션명)
+export function optionNames(p) {
+  const fromRows = (p?.options || []).map(optionLabel).filter(Boolean);
+  if (fromRows.length) return fromRows;
+  return (p?.specs?.option_mode === 'multi' ? p.specs.variants || [] : []).map((v, i) => v.name || `옵션 ${i + 1}`);
+}
 
 export function specLabel(key) {
   const all = [...COMMON_SPECS, ...Object.values(CATEGORY_SPECS).flat()];
@@ -221,14 +238,14 @@ export const FIELD_LABELS = {
   work_url: '작업 파일 URL', result_url: '결과물 URL', figma_url: 'Figma URL', completed_date: '실제 완료일',
   scheduled_date: '촬영 예정일', priority: '우선순위', due_date: '희망 완료일', cancelled: '취소',
   cancel_reason: '취소 사유', design_type: '디자인 유형', design_type_etc: '디자인 유형(기타)',
-  package_spec: '패키지 규격', required_text: '필수 기재 문구', print_notes: '인쇄 유의사항',
+  package_spec: '패키지 규격(mm)', required_text: '필수 기재 문구', print_notes: '인쇄 유의사항',
   reference_url: '레퍼런스 URL', request_note: '추가 요청사항', purpose: '목적', purpose_etc: '목적(기타)',
   shoot_types: '촬영 유형', shoot_types_etc: '촬영 유형(기타)', location: '촬영 장소', location_etc: '촬영 장소(기타)',
   shoot_options: '촬영 옵션', quantity: '촬영 수량', caution: '유의사항', desired_shoot_date: '촬영 희망일',
   work_type: '작업 유형', title: '작업명', channels: '사용 위치', channels_etc: '사용 위치(기타)',
   plan_url: '기획안 URL', brand_id: '브랜드', product_id: '제품', shoot_request_id: '연결 촬영',
   online_name: '온라인 제품명', retail_name: '유통 제품명', sku: '제품 코드/SKU', category: '카테고리',
-  product_kind: '요청 구분', arrival_date: '입고 예정일', arrival_qty: '입고 예정 수량', specs: '상세 사양', options: '옵션',
+  product_kind: '요청 구분', arrival_date: '입고 예정일', arrival_qty: '입고 예정 수량(옵션 총 수량 합계)', specs: '상세 사양', options: '옵션',
   spec_changes: '사양 변경사항', spec_notes: '추가 설명', followup: '후속 업무', shoot_needed: '촬영 필요',
   detail_needed: '상세페이지 필요', thumb_needed: '썸네일 필요', launch_date: '론칭 예정일',
   launch_state: '론칭 준비 상태', note: '메모',

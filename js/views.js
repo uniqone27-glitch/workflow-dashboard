@@ -1,9 +1,9 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611172250';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611172250';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611172250';
-import { openDetail, openProduct } from './detail.js?v=202611172250';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611172250';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611181459';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611181459';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611181459';
+import { openDetail, openProduct } from './detail.js?v=202611181459';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611181459';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -365,18 +365,19 @@ function productsView(route, el) {
 // ===================================================================== 관리자
 function adminView(route, el) {
   const draw = () => {
-    const users = [...S.data.profiles].sort((a, b) => (a.role === 'pending' ? -1 : 1) - (b.role === 'pending' ? -1 : 1) || a.name.localeCompare(b.name));
+    const users = S.data.profiles.filter((u) => !u.deleted_at).sort((a, b) => (a.role === 'pending' ? -1 : 1) - (b.role === 'pending' ? -1 : 1) || a.name.localeCompare(b.name));
     el.innerHTML = `
       <div class="card"><div class="card-head"><h3>사용자 및 권한</h3>
         <span class="muted small">신규 가입자는 '승인 대기' 상태입니다. 소속 팀을 지정하면 바로 이용할 수 있습니다.</span></div>
         <div class="table-scroll"><table class="table">
-          <thead><tr><th>이름</th><th>이메일</th><th>권한</th><th>계정 상태</th><th>가입일</th></tr></thead>
+          <thead><tr><th>이름</th><th>이메일</th><th>권한</th><th>계정 상태</th><th>가입일</th><th></th></tr></thead>
           <tbody>${users.map((u) => `<tr class="${u.role === 'pending' ? 'hl' : ''}">
             <td><strong>${esc(u.name)}</strong>${u.id === S.me.id ? ' <span class="tag">나</span>' : ''}</td>
             <td>${esc(u.email || '')}</td>
             <td><select class="input input-sm" data-role="${u.id}">${options(Object.entries(ROLES), u.role)}</select></td>
             <td><label class="check"><input type="checkbox" data-active="${u.id}" ${u.active ? 'checked' : ''}><span>${u.active ? '활성' : '비활성'}</span></label></td>
-            <td>${fmtDate(u.created_at)}</td></tr>`).join('')}</tbody></table></div>
+            <td>${fmtDate(u.created_at)}</td>
+            <td>${u.id === S.me.id ? '' : `<button class="btn-link danger small" data-del-user="${u.id}">삭제</button>`}</td></tr>`).join('')}</tbody></table></div>
       </div>
       <div class="grid-2">
         <div class="card"><div class="card-head"><h3>브랜드</h3></div>
@@ -398,6 +399,13 @@ function adminView(route, el) {
     }));
     $$('[data-active]', el).forEach((c) => c.addEventListener('change', () =>
       act(() => S.db.update('profiles', { id: c.dataset.active }, { active: c.checked }).then(() => loadTable('profiles')), '계정 상태를 변경했습니다.')));
+    $$('[data-del-user]', el).forEach((b) => b.addEventListener('click', async () => {
+      const u = S.data.profiles.find((x) => x.id === b.dataset.delUser);
+      if (!u) return;
+      const ok = await confirmBox(`「${u.name}」(${u.email || ''}) 계정을 삭제할까요? 삭제하면 이 계정으로 더 이상 로그인할 수 없고 되돌릴 수 없습니다. 작성한 요청·댓글·변경 이력은 그대로 남습니다.`, { danger: true, ok: '삭제' });
+      if (!ok) return;
+      act(() => S.db.rpc('admin_delete_user', { target: u.id }).then(() => loadTable('profiles')).then(draw), '사용자를 삭제했습니다.');
+    }));
     $$('[data-brand]', el).forEach((c) => c.addEventListener('change', () =>
       act(() => S.db.update('brands', { id: Number(c.dataset.brand) }, { active: c.checked }).then(() => loadTable('brands')), '저장했습니다.')));
     $$('[data-wt]', el).forEach((b) => b.addEventListener('click', () =>

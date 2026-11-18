@@ -80,6 +80,7 @@ export function supabaseBackend(url, anonKey) {
       return data.signedUrl;
     },
     async removeFile(path) { check(await sb.storage.from(BUCKET).remove([path])); },
+    async rpc(fn, args) { return check(await sb.rpc(fn, args)); },
     subscribe(onChange) {
       const ch = sb.channel('workflow-all');
       TABLES.filter((t) => !['drafts', 'notification_reads'].includes(t)).forEach((t) => {
@@ -95,7 +96,7 @@ export function supabaseBackend(url, anonKey) {
 // 체험 모드 (서버 없이 화면/흐름 확인용) — 서버의 트리거 동작을 간단히 흉내냅니다.
 // ---------------------------------------------------------------------------
 export function demoBackend() {
-  const KEY = 'wf-demo-db-v1';
+  const KEY = 'wf-demo-db-v2';
   const bc = 'BroadcastChannel' in window ? new BroadcastChannel('wf-demo') : null;
   const listeners = [];
   const blobs = {};
@@ -283,6 +284,17 @@ export function demoBackend() {
     },
     async downloadUrl(path) { return blobs[path] || (path.startsWith('demo:') ? path.slice(5) : ''); },
     async removeFile(path) { delete blobs[path]; },
+    async rpc(fn, args) {
+      if (fn !== 'admin_delete_user') throw new Error('지원하지 않는 기능입니다.');
+      if (role() !== 'admin') throw new Error('권한이 없습니다: 사용자 삭제는 관리자만 할 수 있습니다.');
+      if (args.target === uid()) throw new Error('본인 계정은 삭제할 수 없습니다.');
+      const row = db.profiles.find((x) => x.id === args.target);
+      if (row) Object.assign(row, { active: false, role: 'pending', email: null, deleted_at: now() });
+      db.drafts = db.drafts.filter((x) => x.user_id !== args.target);
+      emit('profiles', 'UPDATE', row);
+      save();
+      return null;
+    },
     subscribe(cb) {
       listeners.push(cb);
       setTimeout(() => cb('__status', { status: 'SUBSCRIBED' }), 50);
@@ -315,7 +327,7 @@ export function demoBackend() {
     return {
       __seq: { PRD: 3, PKG: 3, SHT: 1, DSN: 2 },
       profiles,
-      brands: [{ id: 1, name: '퍼니츠', sort: 1, active: true }, { id: 2, name: '뽀뽀백번', sort: 2, active: true }],
+      brands: [{ id: 1, name: '퍼니츠', sort: 1, active: true }, { id: 2, name: '뽀뽀백번', sort: 2, active: true }, { id: 3, name: '유통', sort: 3, active: true }],
       design_work_types: ['상세페이지 신규 제작', '상세페이지 수정', '썸네일 신규 제작', '썸네일 수정', '프로모션 배너', 'SNS 이미지', '영상 제작 및 편집', '광고 소재', '기타 디자인 작업'].map((name, i) => ({ name, sort: i })),
       products,
       launch_readiness: [L('p1', { followup: '미확인' }), L('p2', { followup: '후속 진행', shoot_needed: '필요', detail_needed: '필요', thumb_needed: '필요', launch_state: '준비중', launch_date: d(20) }), L('p3', { followup: '후속 진행', shoot_needed: '필요', detail_needed: '필요', thumb_needed: '불필요', launch_state: '준비중', launch_date: d(7) })],

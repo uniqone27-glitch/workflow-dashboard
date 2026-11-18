@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls } from './store.js?v=202611172250';
-import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, COMMON_SPECS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS } from './constants.js?v=202611172250';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611172250';
-import { openDetail, openProduct, uploadFiles, productGallery } from './detail.js?v=202611172250';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611181459';
+import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, OPTION_FIELDS, optionNames } from './constants.js?v=202611181459';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611181459';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611181459';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 function specInputs(list, specs = {}) {
@@ -13,9 +13,12 @@ function specInputs(list, specs = {}) {
         : `<input class="input" data-spec="${s.key}" value="${esc(specs[s.key] || '')}">`}
     </label>`).join('');
 }
+const optVal = (o, k) => (k === 'color1' ? o.color1 || o.color || '' : o[k] || '');
+const optHead = `<div class="opt-row opt-head">${OPTION_FIELDS.map(([, l]) => `<span>${esc(l)}</span>`).join('')}<span></span></div>`;
 const optRow = (o = {}) => `<div class="opt-row">
-  ${['name', 'color', 'size', 'material', 'note'].map((k) => `<input class="input" data-k="${k}" value="${esc(o[k] || '')}" placeholder="${{ name: '옵션명', color: '컬러', size: '사이즈', material: '소재', note: '비고' }[k]}">`).join('')}
+  ${OPTION_FIELDS.map(([k, l]) => `<input class="input" data-k="${k}" value="${esc(optVal(o, k))}" placeholder="${esc(l)}" aria-label="${esc(l)}">`).join('')}
   <button type="button" class="icon-btn" data-rm>✕</button></div>`;
+const OPT_KEYS = OPTION_FIELDS.map(([k]) => k);
 const chgRow = (c = {}) => `<div class="chg-row">
   <input class="input" data-k="field" value="${esc(c.field || '')}" placeholder="변경 항목 (예: 프레임 두께)">
   <input class="input" data-k="before" value="${esc(c.before || '')}" placeholder="기존">
@@ -30,15 +33,14 @@ function productSection(p = {}, { withImages = true } = {}) {
       <label class="field"><span>브랜드 <b class="req">*</b></span><select class="input" name="brand_id" required>${options(brands.map((b) => [String(b.id), b.name]), String(p.brand_id ?? ''), { empty: '선택' })}</select></label>
       <label class="field"><span>제품 카테고리 <b class="req">*</b></span><select class="input" name="category" required>${options(CATEGORIES, p.category, { empty: '선택' })}</select></label>
       <label class="field wide"><span>유통 제품명 <b class="req">*</b></span><input class="input" name="retail_name" required value="${esc(p.retail_name || '')}"></label>
-      <label class="field wide"><span>온라인 제품명</span><input class="input" name="online_name" value="${esc(p.online_name || '')}"></label>
       <label class="field wide"><span>요청 구분 <b class="req">*</b></span><select class="input" name="product_kind" required>${options(PRODUCT_KINDS, p.product_kind || '신제품')}</select></label>
       <label class="field"><span>입고 예정일</span><input class="input" type="date" name="arrival_date" value="${esc(p.arrival_date || '')}"></label>
-      <label class="field"><span>입고 예정 수량</span><input class="input" type="number" min="0" step="1" name="arrival_qty" value="${esc(p.arrival_qty ?? '')}" placeholder="예: 300"></label>
+      <label class="field"><span>입고 예정 수량(옵션 총 수량 합계)</span><input class="input" type="number" min="0" step="1" name="arrival_qty" value="${esc(p.arrival_qty ?? '')}" placeholder="예: 300"></label>
     </div></fieldset>
-    <fieldset><legend>제품 상세 사양</legend>
-      <div class="form-grid">${specInputs(COMMON_SPECS, p.specs)}</div>
+    <fieldset><legend>카테고리별 세부 사양</legend>
       <div class="cat-specs"></div>
-      <h4>옵션별 사양 <small class="muted">컬러·사이즈·소재가 옵션별로 다르면 행을 추가하세요</small></h4>
+      <h4>옵션별 사양 <small class="muted">사이즈·컬러·소재가 옵션별로 다르면 행을 추가하세요</small></h4>
+      ${optHead}
       <div class="opt-rows">${(p.options || []).map(optRow).join('')}</div>
       <button type="button" class="btn btn-sm" data-add-opt>+ 옵션 추가</button>
       <div class="chg-box">
@@ -49,22 +51,59 @@ function productSection(p = {}, { withImages = true } = {}) {
       <label class="field wide"><span>추가 설명 (예외적인 제품 특징)</span><textarea class="input" rows="2" data-pnote>${esc(p.spec_notes || '')}</textarea></label>
     </fieldset>
     ${withImages ? `<fieldset><legend>제품 이미지</legend>
-      <label class="dropzone"><input type="file" accept="image/*" multiple data-pimg><span>이미지 파일을 선택하세요 (여러 장 가능)</span></label>
-      <div class="file-list" data-pimg-list></div></fieldset>` : ''}
+      ${fileDrop('pimg', { accept: 'image/*', text: '이미지 파일을 선택하세요 (여러 장 가능)' })}</fieldset>` : ''}
   </div>`;
 }
 
 function bindProductSection(root, p = {}) {
   const sec = $('.prod-fields', root);
   if (!sec) return;
-  let specCache = { ...(p.specs || {}) };
+  const sp0 = p.specs || {};
+  const multi0 = sp0.option_mode === 'multi';
+  const st = sec._spec || (sec._spec = {
+    mode: multi0 ? 'multi' : 'single',
+    single: multi0 ? {} : { ...sp0 },
+    variants: multi0 ? structuredClone(sp0.variants || []) : [],
+  });
   const catSel = $('[name=category]', sec);
-  const drawCat = () => {
-    $$('.cat-specs [data-spec]', sec).forEach((i) => { specCache[i.dataset.spec] = i.value; });
-    const list = CATEGORY_SPECS[catSel.value] || [];
-    $('.cat-specs', sec).innerHTML = list.length ? `<h4>${esc(catSel.value)} 세부 사양</h4><div class="form-grid">${specInputs(list, specCache)}</div>` : '';
+  const box = $('.cat-specs', sec);
+  // 현재 화면의 입력값을 상태에 반영
+  const capture = () => {
+    if (st.mode === 'single') $$('[data-spec]', box).forEach((i) => { st.single[i.dataset.spec] = i.value; });
+    else $$('[data-variant]', box).forEach((card, n) => {
+      const v = st.variants[n] || (st.variants[n] = {});
+      v.name = $('[data-vname]', card).value;
+      $$('[data-spec]', card).forEach((i) => { v[i.dataset.spec] = i.value; });
+    });
   };
-  catSel.addEventListener('change', drawCat);
+  sec._captureSpecs = capture;
+  const drawCat = () => {
+    const list = CATEGORY_SPECS[catSel.value] || [];
+    if (!list.length) { box.innerHTML = '<p class="muted small">제품 카테고리를 선택하면 세부 사양 입력란이 나타납니다.</p>'; return; }
+    box.innerHTML = `<div class="cat-head"><h4>${esc(catSel.value)} 세부 사양</h4>
+        <div class="seg-ctl"><button type="button" data-optmode="single" class="${st.mode === 'single' ? 'on' : ''}">단일 옵션</button>
+          <button type="button" data-optmode="multi" class="${st.mode === 'multi' ? 'on' : ''}">다중 옵션</button></div></div>
+      ${st.mode === 'single' ? `<div class="form-grid">${specInputs(list, st.single)}</div>`
+        : `<p class="muted small">옵션마다 사양을 따로 입력합니다.</p>${st.variants.map((v, n) => `
+          <div class="variant-card" data-variant>
+            <div class="variant-head"><b>옵션 ${n + 1}</b><input class="input" data-vname value="${esc(v.name || '')}" placeholder="옵션명 (예: 오크 1200)">
+              <button type="button" class="icon-btn" data-rm-variant="${n}" title="옵션 삭제">✕</button></div>
+            <div class="form-grid">${specInputs(list, v)}</div>
+          </div>`).join('')}
+          <button type="button" class="btn btn-sm" data-add-variant>+ 옵션 추가</button>`}`;
+  };
+  catSel.addEventListener('change', () => { capture(); drawCat(); });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.optmode && b.dataset.optmode !== st.mode) {
+      capture();
+      st.mode = b.dataset.optmode;
+      if (st.mode === 'multi' && !st.variants.length) st.variants = [{ ...st.single, name: '' }, {}];
+      drawCat();
+    } else if (b.matches('[data-add-variant]')) { capture(); st.variants.push({}); drawCat(); }
+    else if (b.dataset.rmVariant !== undefined) { capture(); st.variants.splice(Number(b.dataset.rmVariant), 1); drawCat(); }
+  });
   drawCat();
   const kindSel = $('[name=product_kind]', sec);
   const chg = () => { $('.chg-box', sec).hidden = kindSel.value === '신제품' && !$$('.chg-row', sec).length; };
@@ -75,17 +114,17 @@ function bindProductSection(root, p = {}) {
     if (e.target.matches('[data-add-chg]')) $('.chg-rows', sec).insertAdjacentHTML('beforeend', chgRow());
     if (e.target.matches('[data-rm]')) e.target.parentElement.remove();
   });
-  const img = $('[data-pimg]', sec);
-  img?.addEventListener('change', () => {
-    $('[data-pimg-list]', sec).innerHTML = [...img.files].map((f) => `<span class="file-chip">${esc(f.name)}</span>`).join('');
-  });
 }
 
 function readProductSection(root) {
   const sec = $('.prod-fields', root);
   const basic = readForm($('.prod-basic', sec));
-  const specs = {};
-  $$('[data-spec]', sec).forEach((i) => { if (i.value.trim()) specs[i.dataset.spec] = i.value.trim(); });
+  sec._captureSpecs?.();
+  const st = sec._spec || { mode: 'single', single: {}, variants: [] };
+  const trimObj = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, String(v ?? '').trim()]).filter(([, v]) => v));
+  const specs = st.mode === 'multi'
+    ? { option_mode: 'multi', variants: st.variants.map(trimObj).filter((v) => Object.keys(v).length) }
+    : trimObj(st.single);
   const rows = (sel, keys) => $$(sel, sec).map((r) => Object.fromEntries(keys.map((k) => [k, $(`[data-k=${k}]`, r).value.trim()])))
     .filter((o) => Object.values(o).some(Boolean));
   return {
@@ -93,7 +132,7 @@ function readProductSection(root) {
     brand_id: basic.brand_id ? Number(basic.brand_id) : null,
     arrival_qty: basic.arrival_qty != null && basic.arrival_qty !== '' ? Number(basic.arrival_qty) : null,
     specs,
-    options: rows('.opt-row', ['name', 'color', 'size', 'material', 'note']),
+    options: rows('.opt-row:not(.opt-head)', OPT_KEYS),
     spec_changes: rows('.chg-row', ['field', 'before', 'after']),
     spec_notes: $('[data-pnote]', sec).value.trim() || null,
   };
@@ -114,7 +153,6 @@ function productPicker(selected, { required = true, brandFilter = null } = {}) {
 function productInfo(pid, kind) {
   const p = product(pid);
   if (!p) return '';
-  const specs = [...COMMON_SPECS, ...(CATEGORY_SPECS[p.category] || [])].filter((s) => p.specs?.[s.key]);
   const open = requests(kind).filter((r) => r.product_id === pid && !r.cancelled && r.status !== '완료');
   return `
     ${open.length ? `<div class="dup-warn"><strong>이 제품에 진행 중인 ${KINDS[kind].short} 업무가 ${open.length}건 있습니다.</strong>
@@ -125,9 +163,8 @@ function productInfo(pid, kind) {
       ${productGallery(pid)}
       <div class="grow">
         <div class="muted small">${esc(brandName(p.brand_id))} · ${esc(p.category)} · ${esc(p.product_kind)} · 입고 예정 ${fmtDate(p.arrival_date)}${p.arrival_qty != null ? ` · ${esc(p.arrival_qty)}개` : ''}</div>
-        <strong>${esc(pname(p))}</strong> <span class="small">${p.online_name && p.online_name !== p.retail_name ? `온라인: ${esc(p.online_name)}` : ''}</span>
-        <dl class="spec-mini">${specs.map((s) => `<div><dt>${esc(s.label)}</dt><dd>${esc(p.specs[s.key])}</dd></div>`).join('')}</dl>
-        ${p.options?.length ? `<div class="small"><b>옵션</b> ${p.options.map((o) => esc([o.name, o.color, o.size, o.material].filter(Boolean).join(' / '))).join(' · ')}</div>` : ''}
+        <strong>${esc(pname(p))}</strong>
+        ${specSummary(p)}
         ${p.spec_changes?.length ? `<div class="small"><b>변경사항</b> ${p.spec_changes.map((c) => `${esc(c.field)}: ${esc(c.before)} → ${esc(c.after)}`).join(' · ')}</div>` : ''}
         ${p.spec_notes ? `<div class="small"><b>특이사항</b> ${esc(p.spec_notes)}</div>` : ''}
         <div class="row gap-sm"><span class="muted small">제품 사양은 물류/발주팀 등록 정보로 고정됩니다.</span>
@@ -174,9 +211,80 @@ function shootRefField(r) {
         : '<p class="muted small">이 제품에 물류/발주팀이 등록한 이미지가 없습니다. 「새 이미지 업로드」를 선택하세요.</p>'}
     </div>
     <div data-ref-pane="upload" ${mode === 'upload' ? '' : 'hidden'}>
-      <label class="dropzone"><input type="file" multiple accept="image/*" data-reqfiles><span>이미지 파일 선택 (여러 장 가능)</span></label><div class="file-list" data-reqfiles-list></div>
+      ${fileDrop('req', { accept: 'image/*', text: '이미지 파일 선택 (여러 장 가능)' })}
     </div>
   </div>`;
+}
+
+// ---------------------------------------------------------------- 파일 선택 (선택한 파일 개별 삭제·추가 가능)
+function fileDrop(key, { accept = '', text = '파일 선택 (여러 개 가능)' } = {}) {
+  return `<label class="dropzone"><input type="file" multiple ${accept ? `accept="${accept}"` : ''} data-pick="${key}"><span>${esc(text)}</span></label>
+    <div class="file-list" data-picked="${key}"></div>`;
+}
+const isImgFile = (f) => /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(f.name);
+const isImgAtt0 = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(a.file_name || '');
+
+// ---------------------------------------------------------------- 패키지 규격: 단일 / 다중 패키지
+// 다중 패키지는 한 줄에 하나씩 "[패키지명] 규격" 형식으로 저장
+function parsePkgSpec(text) {
+  const lines = String(text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  if (lines.length && lines.every((l) => /^\[[^\]]*\]/.test(l))) {
+    return { mode: 'multi', rows: lines.map((l) => { const m = l.match(/^\[([^\]]*)\]\s*(.*)$/); return { name: m[1], spec: m[2] }; }) };
+  }
+  return { mode: 'single', single: String(text || ''), rows: [] };
+}
+const pkgRow = (r = {}, n = 0) => `<div class="pkg-row">
+  <input class="input" data-pk="name" value="${esc(r.name || '')}" placeholder="패키지명 (예: 패키지 ${n + 1} · 상판)">
+  <input class="input" data-pk="spec" value="${esc(r.spec || '')}" placeholder="가로 × 세로 × 높이(mm), 재질 (예: 1250 × 1250 × 120, 골판지 5겹)">
+  <button type="button" class="icon-btn" data-rm-pkg>✕</button></div>`;
+function pkgSpecField(r) {
+  const cur = r.pkg_mode ? { mode: r.pkg_mode, single: r.pkg_single ?? '', rows: r.pkg_rows || [] } : parsePkgSpec(r.package_spec);
+  if (cur.mode === 'multi' && !cur.rows.length) cur.rows = [{}, {}];
+  return `<div class="field wide pkg-spec"><span>패키지 규격(mm)</span>
+    <div class="seg-ctl sm"><button type="button" data-pkgmode="single" class="${cur.mode === 'single' ? 'on' : ''}">단일 패키지</button>
+      <button type="button" data-pkgmode="multi" class="${cur.mode === 'multi' ? 'on' : ''}">다중 패키지</button></div>
+    <input type="hidden" name="pkg_mode" value="${cur.mode}">
+    <input type="hidden" name="package_spec" value="">
+    <div data-pkg-pane="single" ${cur.mode === 'single' ? '' : 'hidden'}><input class="input" data-pkg-single value="${esc(cur.single || '')}" placeholder="예: 1250 × 1250 × 120, 골판지 5겹"></div>
+    <div data-pkg-pane="multi" ${cur.mode === 'multi' ? '' : 'hidden'}>
+      <div class="pkg-rows">${cur.rows.map(pkgRow).join('')}</div>
+      <button type="button" class="btn btn-sm" data-add-pkg>+ 패키지 추가</button>
+    </div>
+  </div>`;
+}
+function bindPkgSpec(root) {
+  const box = $('.pkg-spec', root);
+  if (!box) return;
+  const sync = () => {
+    const mode = $('[name=pkg_mode]', box).value;
+    const rows = $$('.pkg-row', box).map((r, n) => ({ name: $('[data-pk=name]', r).value.trim() || `패키지 ${n + 1}`, spec: $('[data-pk=spec]', r).value.trim() }))
+      .filter((r) => r.spec);
+    $('[name=package_spec]', box).value = mode === 'multi' ? rows.map((r) => `[${r.name}] ${r.spec}`).join('\n') : $('[data-pkg-single]', box).value.trim();
+  };
+  box.addEventListener('input', sync);
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.pkgmode) {
+      $('[name=pkg_mode]', box).value = b.dataset.pkgmode;
+      $$('[data-pkgmode]', box).forEach((x) => x.classList.toggle('on', x === b));
+      $$('[data-pkg-pane]', box).forEach((x) => { x.hidden = x.dataset.pkgPane !== b.dataset.pkgmode; });
+      if (b.dataset.pkgmode === 'multi' && !$$('.pkg-row', box).length) $('.pkg-rows', box).innerHTML = [pkgRow({ spec: $('[data-pkg-single]', box).value.trim() }, 0), pkgRow({}, 1)].join('');
+    } else if (b.matches('[data-add-pkg]')) $('.pkg-rows', box).insertAdjacentHTML('beforeend', pkgRow({}, $$('.pkg-row', box).length));
+    else if (b.matches('[data-rm-pkg]')) b.parentElement.remove();
+    sync();
+  });
+  sync();
+}
+// 다시 그릴 때 입력 중이던 다중 패키지 행을 보존
+function readPkgState(root) {
+  const box = $('.pkg-spec', root);
+  if (!box) return {};
+  return {
+    pkg_mode: $('[name=pkg_mode]', box).value,
+    pkg_single: $('[data-pkg-single]', box).value,
+    pkg_rows: $$('.pkg-row', box).map((r) => ({ name: $('[data-pk=name]', r).value, spec: $('[data-pk=spec]', r).value })),
+  };
 }
 
 // ---------------------------------------------------------------- 요청 폼
@@ -186,26 +294,27 @@ function requestFields(kind, r, { create, multiType }) {
   const pr = `
     <label class="field"><span>우선순위 <b class="req">*</b></span><select class="input" name="priority" required>${options(PRIORITIES, r.priority || '보통')}</select></label>
     <label class="field"><span>희망 완료일 <b class="req">*</b></span><input class="input" type="date" name="due_date" required value="${esc(r.due_date || '')}"></label>`;
-  const files = `<label class="field wide"><span>${kind === 'package' ? '제품 이미지, 파일 첨부 <small class="muted">이미지는 제품 이미지로 등록되어 브랜드팀 요청서에도 함께 표시됩니다</small>' : '참고 이미지 첨부'}</span>
-    <label class="dropzone"><input type="file" multiple data-reqfiles><span>파일 선택 (여러 개 가능)</span></label><div class="file-list" data-reqfiles-list></div></label>`;
+  const files = `<div class="field wide"><span>${kind === 'package' ? '작업 진행에 참고가 필요한 파일 첨부 <small class="muted">이미지는 제품 이미지로 등록되어 브랜드팀 요청서에도 함께 표시됩니다</small>' : '참고 이미지 첨부'}</span>
+    ${create ? '' : '<div class="file-list existing" data-existing></div>'}
+    ${fileDrop('req', { text: create ? '파일 선택 (여러 개 가능)' : '파일 추가 (저장 시 업로드)' })}</div>`;
 
   if (kind === 'package') return `
     <fieldset><legend>패키지 디자인 요청 정보</legend><div class="form-grid">
       ${create ? `<div class="field wide"><span>요청 디자인 유형 <b class="req">*</b> <small class="muted">${MULTI_TYPE_HINT}</small></span>${checks('design_types', PACKAGE_TYPES, r.design_types || (r.design_type ? [r.design_type] : []))}</div>`
         : `<label class="field"><span>요청 디자인 유형 <b class="req">*</b></span><select class="input" name="design_type">${options(PACKAGE_TYPES, r.design_type)}</select></label>`}
-      <label class="field"><span>기타 유형 입력</span><input class="input" name="design_type_etc" value="${esc(r.design_type_etc || '')}"></label>
-      <label class="field wide"><span>패키지 규격</span><input class="input" name="package_spec" value="${esc(r.package_spec || '')}" placeholder="예: 1250 × 1250 × 120 mm, 골판지 5겹"></label>
+      <label class="field"><span>직접 입력(기타 선택 시)</span><input class="input" name="design_type_etc" value="${esc(r.design_type_etc || '')}"></label>
+      ${pkgSpecField(r)}
       <label class="field wide"><span>필수 기재 문구</span><textarea class="input" rows="2" name="required_text">${esc(r.required_text || '')}</textarea></label>
       <label class="field wide"><span>인쇄 관련 유의사항</span><textarea class="input" rows="2" name="print_notes">${esc(r.print_notes || '')}</textarea></label>
       <label class="field wide"><span>디자인 레퍼런스 URL(카피 제품 URL, ex 비아브 테이블은 피아바 가베 테이블을 카피한 상품으로 가베 테이블 링크 첨부)</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>
-      ${create ? files : ''}
+      ${files}
       <label class="field wide"><span>추가 요청사항</span><textarea class="input" rows="2" name="request_note">${esc(r.request_note || '')}</textarea></label>
     </div></fieldset>
     <fieldset><legend>일정 및 우선순위</legend><div class="form-grid">${pr}</div></fieldset>`;
 
   if (kind === 'shoot') {
     const p = product(r.product_id);
-    const optNames = (p?.options || []).map((o) => o.name || o.color).filter(Boolean);
+    const optNames = optionNames(p);
     return `
     <fieldset><legend>촬영 요청 내용</legend><div class="form-grid">
       <label class="field"><span>촬영 목적 <b class="req">*</b></span><select class="input" name="purpose" required>${options(SHOOT_PURPOSES, r.purpose, { empty: '선택' })}</select></label>
@@ -219,7 +328,7 @@ function requestFields(kind, r, { create, multiType }) {
       <label class="field"><span>촬영 희망일</span><input class="input" type="date" name="desired_shoot_date" value="${esc(r.desired_shoot_date || '')}"></label>
       <label class="field wide"><span>촬영 유의사항</span><textarea class="input" rows="2" name="caution">${esc(r.caution || '')}</textarea></label>
       <label class="field wide"><span>촬영 레퍼런스 URL</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>
-      ${create ? shootRefField(r) : ''}
+      ${create ? shootRefField(r) : files}
       <label class="field wide"><span>추가 요청사항</span><textarea class="input" rows="2" name="request_note">${esc(r.request_note || '')}</textarea></label>
     </div></fieldset>
     <fieldset><legend>일정 및 우선순위</legend><div class="form-grid">${pr}</div></fieldset>`;
@@ -240,7 +349,7 @@ function requestFields(kind, r, { create, multiType }) {
       <label class="field wide"><span>기타 사용 위치</span><input class="input" name="channels_etc" value="${esc(r.channels_etc || '')}"></label>
       <label class="field wide"><span>기획안 URL</span><input class="input" name="plan_url" value="${esc(r.plan_url || '')}" placeholder="Figma, Notion, Google Docs 등"></label>
       <label class="field wide"><span>레퍼런스 URL</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>
-      ${create ? files : ''}
+      ${files}
       <label class="field wide"><span>디자인 유의사항</span><textarea class="input" rows="2" name="caution">${esc(r.caution || '')}</textarea></label>
       <label class="field wide"><span>추가 요청사항</span><textarea class="input" rows="2" name="request_note">${esc(r.request_note || '')}</textarea></label>
     </div></fieldset>
@@ -262,6 +371,11 @@ export function openRequestForm(kind, opts = {}) {
     newProduct: draftPayload.newProduct || {},
     req: draftPayload.req || { ...(edit || {}), product_id: opts.productId || edit?.product_id || null, shoot_request_id: opts.shootId || edit?.shoot_request_id || null },
   };
+  state.files = { req: [], pimg: [] };
+  state.removeAtt = new Set();
+  // 수정 화면: 이 요청의 기존 첨부 (패키지는 제품 이미지 포함)
+  const existingAtts = () => (edit ? [...attachmentsOf(kind, edit.id), ...(kind === 'package' ? productImages(edit.product_id) : [])] : [])
+    .filter((a) => !state.removeAtt.has(a.id));
   if (kind === 'design' && create && !state.req.brand_id && state.productId) state.req.brand_id = product(state.productId)?.brand_id;
   if (kind === 'design' && create && !state.req.title && state.productId && opts.multiType) state.req.title = pname(product(state.productId));
   if (kind === 'shoot' && create && !state.req.purpose && state.productId) {
@@ -284,7 +398,7 @@ export function openRequestForm(kind, opts = {}) {
   const snapshot = () => {
     if ($('.prod-fields', body)) state.newProduct = readProductSection(body);
     const rf = $('.req-fields', body);
-    if (rf) state.req = { ...state.req, ...readForm(rf) };
+    if (rf) state.req = { ...state.req, ...readForm(rf), ...readPkgState(rf) };
     const pSel = $('.pick [name=product_id]', body);
     if (pSel) state.productId = pSel.value || null;
     const bSel = $('.pick [name=brand_id]', body);
@@ -341,8 +455,8 @@ export function openRequestForm(kind, opts = {}) {
     });
     const missing = $$('img[data-src-path]', body).filter((im) => !im.getAttribute('src')).map((im) => im.dataset.srcPath);
     if (missing.length) ensureUrls(missing).then(() => $$('img[data-src-path]', body).forEach((im) => { if (S.urls[im.dataset.srcPath]) im.src = S.urls[im.dataset.srcPath]; }));
-    const rf = $('[data-reqfiles]', body);
-    rf?.addEventListener('change', () => { $('[data-reqfiles-list]', body).innerHTML = [...rf.files].map((f) => `<span class="file-chip">${esc(f.name)}</span>`).join(''); });
+    bindPkgSpec(body);
+    drawFiles();
     $('[data-add-type]', body)?.addEventListener('click', async () => {
       const name = $('[data-new-type]', body).value.trim();
       if (!name) return;
@@ -355,7 +469,38 @@ export function openRequestForm(kind, opts = {}) {
       } catch (e) { toast(errMsg(e), 'error'); }
     });
   };
+  // 선택한 파일 목록 (개별 삭제) + 수정 화면의 기존 첨부 (삭제 표시 → 저장 시 반영)
+  function drawFiles() {
+    $$('[data-picked]', body).forEach((list) => {
+      const arr = state.files[list.dataset.picked] || [];
+      list.innerHTML = arr.map((f, i) => `<span class="file-chip">${isImgFile(f) ? `<img src="${esc(f._url || (f._url = URL.createObjectURL(f)))}" alt="">` : ''}${esc(f.name)}
+        <button type="button" class="chip-x" data-unpick="${list.dataset.picked}:${i}" title="선택 취소">✕</button></span>`).join('');
+    });
+    const ex = $('[data-existing]', body);
+    if (ex) {
+      const list = existingAtts();
+      ex.innerHTML = list.length ? list.map((a) => `<span class="file-chip">${isImgAtt0(a) && S.urls[a.storage_path] ? `<img src="${esc(S.urls[a.storage_path])}" alt="">` : ''}${esc(a.file_name)}
+        ${a.uploaded_by === S.me.id || can.admin() ? `<button type="button" class="chip-x" data-unatt="${a.id}" title="삭제">✕</button>` : ''}</span>`).join('')
+        : '<span class="muted small">첨부된 파일이 없습니다.</span>';
+      if (state.removeAtt.size) ex.insertAdjacentHTML('beforeend', `<span class="muted small">삭제 ${state.removeAtt.size}건은 저장 시 반영됩니다.</span>`);
+    }
+  }
+  body.addEventListener('change', (e) => {
+    const inp = e.target.closest('[data-pick]');
+    if (!inp) return;
+    state.files[inp.dataset.pick].push(...inp.files);
+    inp.value = '';
+    drawFiles();
+    form.classList.add('dirty');
+  });
+  body.addEventListener('click', (e) => {
+    const un = e.target.closest('[data-unpick]');
+    if (un) { e.preventDefault(); const [k, i] = un.dataset.unpick.split(':'); state.files[k].splice(Number(i), 1); drawFiles(); return; }
+    const ua = e.target.closest('[data-unatt]');
+    if (ua) { e.preventDefault(); state.removeAtt.add(ua.dataset.unatt); drawFiles(); form.classList.add('dirty'); }
+  });
   draw();
+  if (edit) ensureUrls(existingAtts().filter(isImgAtt0).map((a) => a.storage_path)).then(drawFiles);
   form.addEventListener('input', () => form.classList.add('dirty'));
 
   // 임시저장 (서버에 본인 전용으로 저장)
@@ -368,7 +513,7 @@ export function openRequestForm(kind, opts = {}) {
       else opts.draft = (await S.db.insert('drafts', { kind, title, payload }))[0];
       await loadTable('drafts');
       form.classList.remove('dirty');
-      toast('임시저장했습니다. 첨부파일은 제출 시 업로드됩니다.');
+      toast('임시저장했습니다. 첨부파일은 임시저장되지 않으니 제출 전에 다시 선택하세요.');
       S.hooks.rerender();
     } catch (e) { toast(errMsg(e), 'error'); }
   });
@@ -379,7 +524,7 @@ export function openRequestForm(kind, opts = {}) {
     if (!form.checkValidity()) { form.reportValidity(); return; }
     const req = { ...state.req };
     const refMode = kind === 'shoot' ? (state.req.ref_mode || 'upload') : null;
-    const files = refMode === 'existing' ? [] : [...($('[data-reqfiles]', body)?.files || [])];
+    const files = refMode === 'existing' ? [] : [...state.files.req];
     const linkIds = refMode === 'existing' ? (state.req.ref_existing || []) : [];
     const missing = [];
     if (kind !== 'design' && !state.productId && state.productMode !== 'new') missing.push('제품');
@@ -403,7 +548,22 @@ export function openRequestForm(kind, opts = {}) {
         if (kind === 'shoot') patch.product_id = state.productId;
         Object.keys(patch).forEach((k) => { if (JSON.stringify(patch[k] ?? null) === JSON.stringify(edit[k] ?? null)) delete patch[k]; });
         if (Object.keys(patch).length) await S.db.update(table, { id: edit.id }, patch);
-        await loadTable(table);
+        // 첨부 삭제 (다른 곳에서 같은 파일을 쓰면 저장소 파일은 유지)
+        for (const id of state.removeAtt) {
+          const a = S.data.attachments.find((x) => x.id === id);
+          if (!a) continue;
+          await S.db.remove('attachments', { id });
+          const shared = S.data.attachments.some((x) => x.id !== id && x.storage_path === a.storage_path);
+          if (!shared) await S.db.removeFile(a.storage_path).catch(() => {});
+        }
+        // 첨부 추가 (패키지 요청의 이미지는 제품 이미지로 등록)
+        if (files.length) {
+          const toProduct = kind === 'package' && edit.product_id ? files.filter(isImgFile) : [];
+          if (toProduct.length) await uploadFiles('product', edit.product_id, 'product_image', toProduct);
+          const rest = files.filter((x) => !toProduct.includes(x));
+          if (rest.length) await uploadFiles(kind, edit.id, 'reference', rest);
+        }
+        await Promise.all([table, 'attachments'].map(loadTable));
         toast('수정했습니다.');
         form.classList.remove('dirty');
         m.close();
@@ -417,7 +577,7 @@ export function openRequestForm(kind, opts = {}) {
         const np = state.newProduct;
         const [row] = await S.db.insert('products', productColumns(np));
         pid = row.id;
-        const imgs = [...($('[data-pimg]', body)?.files || [])];
+        const imgs = [...state.files.pimg];
         if (imgs.length) await uploadFiles('product', pid, 'product_image', imgs);
       }
       // 2) 유형별 업무 생성
@@ -434,7 +594,7 @@ export function openRequestForm(kind, opts = {}) {
       });
       const created = await S.db.insert(table, rows);
       // 패키지 요청: 이미지는 제품 이미지(모든 팀 공유)로, 그 외 파일은 각 요청의 첨부파일로 저장
-      const isImg = (f) => /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(f.name);
+      const isImg = isImgFile;
       const reqFiles = kind === 'package' && pid ? files.filter((f) => !isImg(f)) : files;
       if (kind === 'package' && pid && files.some(isImg)) await uploadFiles('product', pid, 'product_image', files.filter(isImg));
       for (const c of created) if (reqFiles.length) await uploadFiles(kind, c.id, 'reference', reqFiles);
@@ -485,6 +645,13 @@ export function openProductForm(p = null) {
     <div class="modal-foot"><div class="grow"></div><button type="button" class="btn" data-close>닫기</button><button class="btn btn-primary">${p ? '저장' : '등록'}</button></div></form>`, { wide: true });
   const form = $('form', m.el);
   bindProductSection(m.el, p || {});
+  const picked = [];
+  const drawPicked = () => {
+    const list = $('[data-picked=pimg]', m.el);
+    if (list) list.innerHTML = picked.map((f, i) => `<span class="file-chip"><img src="${esc(f._url || (f._url = URL.createObjectURL(f)))}" alt="">${esc(f.name)}<button type="button" class="chip-x" data-unpick="${i}">✕</button></span>`).join('');
+  };
+  $('[data-pick=pimg]', m.el)?.addEventListener('change', (e) => { picked.push(...e.target.files); e.target.value = ''; drawPicked(); });
+  m.el.addEventListener('click', (e) => { const b = e.target.closest('[data-unpick]'); if (b) { e.preventDefault(); picked.splice(Number(b.dataset.unpick), 1); drawPicked(); } });
   form.addEventListener('input', () => form.classList.add('dirty'));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -496,8 +663,7 @@ export function openProductForm(p = null) {
         if (Object.keys(data).length) await S.db.update('products', { id: p.id }, data);
       } else {
         const [row] = await S.db.insert('products', data);
-        const imgs = [...($('[data-pimg]', m.el)?.files || [])];
-        if (imgs.length) await uploadFiles('product', row.id, 'product_image', imgs);
+        if (picked.length) await uploadFiles('product', row.id, 'product_image', picked);
         p = row;
       }
       await Promise.all(['products', 'launch_readiness'].map(loadTable));
