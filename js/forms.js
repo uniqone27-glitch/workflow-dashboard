@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611191017';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611191237';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611191017';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611191017';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611191017';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611191237';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611191237';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611191237';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -227,21 +227,20 @@ function logisticsImages(pid) {
 }
 function shootRefField(r) {
   const imgs = logisticsImages(r.product_id);
-  const mode = r.ref_mode || (imgs.length ? 'existing' : 'upload');
   const picked = new Set(r.ref_existing || []);
+  // 물류/발주팀 이미지 선택 + 새 이미지 추가 업로드를 함께 사용 (둘 다 제출 시 첨부)
   return `<div class="field wide ref-field"><span>참고 이미지 첨부</span>
-    <select class="input" name="ref_mode" data-refmode>
-      ${options([['existing', '물류/발주팀 등록 이미지에서 선택'], ['upload', '새 이미지 업로드']], mode)}
-    </select>
-    <div data-ref-pane="existing" ${mode === 'existing' ? '' : 'hidden'}>
+    <div class="ref-sec">
+      <h5>물류/발주팀 등록 이미지에서 선택</h5>
       ${!r.product_id ? '<p class="muted small">먼저 제품을 선택하세요.</p>'
         : imgs.length ? `<div class="ref-pick">${imgs.map((a) => `
           <label class="ref-item"><input type="checkbox" data-multi name="ref_existing" value="${a.id}" ${picked.has(a.id) ? 'checked' : ''}>
             <img data-src-path="${esc(a.storage_path)}" src="${esc(S.urls[a.storage_path] || '')}" alt=""><span>${esc(a.file_name)}</span></label>`).join('')}</div>
           <p class="muted small">선택한 이미지는 다시 업로드하지 않고 원본 파일을 그대로 연결합니다.</p>`
-        : '<p class="muted small">이 제품에 물류/발주팀이 등록한 이미지가 없습니다. 「새 이미지 업로드」를 선택하세요.</p>'}
+        : '<p class="muted small">이 제품에 물류/발주팀이 등록한 이미지가 없습니다.</p>'}
     </div>
-    <div data-ref-pane="upload" ${mode === 'upload' ? '' : 'hidden'}>
+    <div class="ref-sec">
+      <h5>추가 이미지 업로드 <small class="muted">선택한 이미지와 함께 첨부됩니다</small></h5>
       ${fileDrop('req', { accept: 'image/*', text: '이미지 파일 선택 (여러 장 가능)' })}
     </div>
   </div>`;
@@ -468,8 +467,7 @@ export function openRequestForm(kind, opts = {}) {
       snapshot();
       if (kind === 'design' && state.productId) state.req.brand_id = product(state.productId)?.brand_id;
       if (kind === 'shoot') {
-        // 제품이 바뀌면 참고 이미지 선택을 초기화 (이미지가 있으면 '기존 이미지 선택'이 기본)
-        delete state.req.ref_mode;
+        // 제품이 바뀌면 물류/발주팀 이미지 선택만 초기화 (추가 업로드한 이미지는 유지)
         delete state.req.ref_existing;
         const pk = product(state.productId)?.product_kind;
         if (!state.req.purpose && pk) state.req.purpose = pk === '리뉴얼' ? '제품 리뉴얼' : '신제품 론칭';
@@ -483,10 +481,6 @@ export function openRequestForm(kind, opts = {}) {
     });
     $$('[data-open-req]', body).forEach((b) => b.addEventListener('click', () => { const [k, id] = b.dataset.openReq.split(':'); openDetail(k, id); }));
     $$('[data-correction]', body).forEach((b) => b.addEventListener('click', () => requestCorrection(b.dataset.correction)));
-    const modeSel = $('[data-refmode]', body);
-    modeSel?.addEventListener('change', () => {
-      $$('[data-ref-pane]', body).forEach((p) => { p.hidden = p.dataset.refPane !== modeSel.value; });
-    });
     const missing = $$('img[data-src-path]', body).filter((im) => !im.getAttribute('src')).map((im) => im.dataset.srcPath);
     if (missing.length) ensureUrls(missing).then(() => $$('img[data-src-path]', body).forEach((im) => { if (S.urls[im.dataset.srcPath]) im.src = S.urls[im.dataset.srcPath]; }));
     bindPkgSpec(body);
@@ -557,9 +551,8 @@ export function openRequestForm(kind, opts = {}) {
     snapshot();
     if (!form.checkValidity()) { form.reportValidity(); return; }
     const req = { ...state.req };
-    const refMode = kind === 'shoot' ? (state.req.ref_mode || 'upload') : null;
-    const files = refMode === 'existing' ? [] : [...state.files.req];
-    const linkIds = refMode === 'existing' ? (state.req.ref_existing || []) : [];
+    const files = [...state.files.req];
+    const linkIds = kind === 'shoot' && create ? (state.req.ref_existing || []) : [];
     const missing = [];
     if (kind !== 'design' && !state.productId && state.productMode !== 'new') missing.push('제품');
     if (create && kind === 'package' && !(req.design_types || []).length) missing.push('요청 디자인 유형');
