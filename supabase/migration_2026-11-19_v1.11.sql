@@ -96,6 +96,18 @@ create trigger t20_code   before insert on public.dev_requests for each row exec
 drop trigger if exists t90_notify on public.dev_requests;
 create trigger t90_notify after insert or update on public.dev_requests for each row execute function public.dev_notify();
 
+-- 개발 요청 삭제 시 댓글·첨부·알림 기록도 함께 정리
+create or replace function public.dev_cleanup() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.comments      where entity_type = 'dev' and entity_id = old.id;
+  delete from public.attachments   where entity_type = 'dev' and entity_id = old.id;
+  delete from public.notifications where entity_type = 'dev' and entity_id = old.id;
+  return old;
+end $$;
+drop trigger if exists t95_cleanup on public.dev_requests;
+create trigger t95_cleanup after delete on public.dev_requests for each row execute function public.dev_cleanup();
+
 -- RLS
 alter table public.dev_requests enable row level security;
 drop policy if exists dev_select on public.dev_requests;
