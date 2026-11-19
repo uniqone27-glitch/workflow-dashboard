@@ -6,7 +6,7 @@
   },
   "features": {
     "bot_user": {
-      "display_name": "FBG 대시보드",
+      "display_name": "fbg-dashboard",
       "always_online": true
     },
     "app_home": {
