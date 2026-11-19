@@ -447,3 +447,24 @@ img[data-zoom] { cursor: zoom-in; }
 /* ---------- 목록 썸네일 확대 ---------- */
 img.thumb.zoomable { cursor: zoom-in; transition: transform .15s, box-shadow .15s; }
 img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+
+/* ---------- 06 패치노트 ---------- */
+.pn-filter { flex-wrap: wrap; }
+.pn-list { display: grid; gap: 14px; max-width: 920px; }
+.pn-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.pn-head h3 { margin: 0; font-size: 16px; }
+.pn-ver { font: 600 12px var(--font); background: var(--text); color: var(--surface); border-radius: 6px; padding: 2px 8px; }
+.pn-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pn-items li { display: grid; grid-template-columns: 44px 120px minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 14px; line-height: 1.5; }
+.pn-type { font-size: 11px; font-weight: 600; text-align: center; border-radius: 6px; padding: 2px 0; background: #f0f0f2; color: var(--text-2); }
+.pn-type.new { background: #e3f6ea; color: #1a7f37; }
+.pn-type.mod { background: #fff1e0; color: #b25e00; }
+.pn-type.imp { background: #eef0ff; color: #4b4fc4; }
+.pn-area { font-size: 12px; color: var(--text-2); }
+.tag.new { background: var(--accent-soft); color: var(--accent); }
+.nav-new { margin-left: auto; font: 700 10px var(--font); color: #fff; background: #ff3b30; border-radius: 980px; padding: 1px 6px; }
+@media (max-width: 640px) {
+  .pn-items li { grid-template-columns: 44px minmax(0, 1fr); }
+  .pn-area { grid-column: 2; }
+  .pn-text { grid-column: 1 / -1; }
+}
