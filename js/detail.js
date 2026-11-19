@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611181539';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611181539';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611181539';
-import { openRequestForm, openProductForm } from './forms.js?v=202611181539';
-import { launchSummary, progCell, histText } from './views.js?v=202611181539';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191008';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191008';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191008';
+import { openRequestForm, openProductForm } from './forms.js?v=202611191008';
+import { launchSummary, progCell, histText } from './views.js?v=202611191008';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -137,19 +137,114 @@ function bindAttachments(el, rerender) {
 }
 
 // ---------------------------------------------------------------- 댓글 / 이력
+// ---------------------------------------------------------------- 멘션
+const MENTION_TEAMS = [['logistics', '물류/발주팀'], ['brand', '브랜드팀'], ['design', '디자인팀']];
+function mentionCandidates() {
+  const users = S.data.profiles
+    .filter((p) => p.active && !p.deleted_at && p.role !== 'pending' && p.id !== S.me.id)
+    .map((p) => ({ type: 'user', id: p.id, name: p.name, sub: ROLES[p.role] || '' }));
+  const teams = MENTION_TEAMS.map(([role, name]) => ({ type: 'role', id: role, name, sub: '팀 전체' }));
+  return [...teams, ...users];
+}
+// 본문에 들어 있는 @이름 → 멘션 대상 (긴 이름부터 확인해 부분 일치 방지)
+function parseMentions(body) {
+  const found = { mentions: [], mention_roles: [] };
+  let rest = body;
+  [...mentionCandidates()].sort((a, b) => b.name.length - a.name.length).forEach((c) => {
+    const tok = `@${c.name}`;
+    if (!rest.includes(tok)) return;
+    rest = rest.split(tok).join(' ');
+    if (c.type === 'user') found.mentions.push(c.id);
+    else found.mention_roles.push(c.id);
+  });
+  return found;
+}
+// 댓글 본문 표시: 멘션된 이름 강조
+function commentHtml(c) {
+  let html = nl(c.body);
+  const names = [
+    ...(c.mentions || []).map((id) => ({ name: S.data.profiles.find((p) => p.id === id)?.name, me: id === S.me.id })),
+    ...(c.mention_roles || []).map((r) => ({ name: MENTION_TEAMS.find(([k]) => k === r)?.[1], me: r === S.me.role })),
+  ].filter((x) => x.name).sort((a, b) => b.name.length - a.name.length);
+  const marks = [];
+  names.forEach(({ name, me }, i) => {
+    const tok = esc(`@${name}`);
+    if (!html.includes(tok)) return;
+    html = html.split(tok).join(`\u0000${i}\u0000`);
+    marks[i] = `<span class="mention${me ? ' mention-self' : ''}">${tok}</span>`;
+  });
+  return html.replace(/\u0000(\d+)\u0000/g, (_, i) => marks[i]);
+}
+const mentionsMe = (c) => (c.mentions || []).includes(S.me.id) || (c.mention_roles || []).includes(S.me.role);
+
+function bindMentionInput(ta) {
+  const box = document.createElement('div');
+  box.className = 'mention-menu';
+  box.hidden = true;
+  ta.parentElement.insertBefore(box, ta.nextSibling);
+  let items = [], active = 0, start = -1;
+  const close = () => { box.hidden = true; items = []; start = -1; };
+  const draw = () => {
+    box.innerHTML = items.map((c, i) => `<button type="button" class="${i === active ? 'on' : ''}" data-i="${i}">
+      <b>@${esc(c.name)}</b><small>${esc(c.sub)}</small></button>`).join('');
+    box.hidden = !items.length;
+  };
+  const update = () => {
+    const pos = ta.selectionStart;
+    const m = ta.value.slice(0, pos).match(/(^|\s)@([^\s@]{0,20})$/);
+    if (!m) return close();
+    start = pos - m[2].length - 1;
+    const q = m[2].toLowerCase();
+    items = mentionCandidates().filter((c) => c.name.toLowerCase().includes(q)).slice(0, 8);
+    active = 0;
+    draw();
+  };
+  const pick = (c) => {
+    const pos = ta.selectionStart;
+    const ins = `@${c.name} `;
+    ta.value = ta.value.slice(0, start) + ins + ta.value.slice(pos);
+    const caret = start + ins.length;
+    ta.setSelectionRange(caret, caret);
+    close();
+    ta.focus();
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  ta.addEventListener('input', update);
+  ta.addEventListener('click', update);
+  ta.addEventListener('blur', () => setTimeout(close, 150));
+  ta.addEventListener('keydown', (e) => {
+    if (box.hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      active = (active + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length;
+      draw();
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (e.isComposing) return;
+      e.preventDefault();
+      pick(items[active]);
+    } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+  });
+  box.addEventListener('mousedown', (e) => {
+    const b = e.target.closest('[data-i]');
+    if (!b) return;
+    e.preventDefault();
+    pick(items[Number(b.dataset.i)]);
+  });
+}
+
 function commentsBlock(entity, id, { allowCorrection = false } = {}) {
   const list = S.data.comments.filter((c) => c.entity_type === entity && c.entity_id === id).sort((a, b) => (a.created_at > b.created_at ? 1 : -1));
   return `<section class="section" data-comments="${entity}:${id}">
     <h3>협업 댓글 <span class="muted small">${list.length}</span></h3>
     <div class="comments">${list.map((c) => `
-      <div class="comment ${c.kind === 'correction' ? 'correction' : ''}">
+      <div class="comment ${c.kind === 'correction' ? 'correction' : ''} ${mentionsMe(c) ? 'mentioned' : ''}">
         <div class="c-head"><strong>${esc(profileName(c.author_id))}</strong><span class="muted small">${esc(ROLES[S.data.profiles.find((p) => p.id === c.author_id)?.role] || '')} · ${fmtDateTime(c.created_at)}</span>
           ${c.kind === 'correction' ? '<span class="tag warn">정보 수정 요청</span>' : ''}
           ${c.author_id === S.me.id || can.admin() ? `<button class="btn-link danger small" data-del-c="${c.id}">삭제</button>` : ''}</div>
-        <p>${nl(c.body)}</p>
+        <p>${commentHtml(c)}</p>
       </div>`).join('') || '<p class="muted small">아직 댓글이 없습니다.</p>'}</div>
     <form class="comment-form">
-      <textarea class="input" name="body" rows="2" placeholder="요청 부서·디자인팀에 남길 내용을 입력하세요" required></textarea>
+      <div class="mention-wrap"><textarea class="input" name="body" rows="2" placeholder="요청 부서·디자인팀에 남길 내용을 입력하세요. @를 입력하면 사람이나 팀을 멘션할 수 있습니다." required></textarea></div>
       <div class="row gap">
         ${allowCorrection ? '<label class="check"><input type="checkbox" name="correction"><span>제품 정보 수정 요청으로 등록 (물류/발주팀 알림)</span></label>' : ''}
         <div class="grow"></div><button class="btn btn-primary btn-sm">등록</button></div>
@@ -161,12 +256,16 @@ function bindComments(el, rerender) {
     const [entity, id] = sec.dataset.comments.split(':');
     const form = $('form', sec);
     form.body.addEventListener('input', () => form.classList.toggle('dirty', !!form.body.value.trim()));
+    bindMentionInput(form.body);
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = form.body.value.trim();
       if (!body) return;
       try {
-        await S.db.insert('comments', { entity_type: entity, entity_id: id, body, kind: form.correction?.checked ? 'correction' : 'comment' });
+        const ment = parseMentions(body);
+        await S.db.insert('comments', { entity_type: entity, entity_id: id, body, kind: form.correction?.checked ? 'correction' : 'comment', ...ment });
+        const cnt = ment.mentions.length + ment.mention_roles.length;
+        if (cnt) toast(`댓글을 등록하고 ${cnt}곳에 멘션 알림을 보냈습니다.`);
         form.classList.remove('dirty');
         await loadTable('comments');
         rerender();

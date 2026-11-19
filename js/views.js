@@ -1,9 +1,9 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611181539';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611181539';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611181539';
-import { openDetail, openProduct } from './detail.js?v=202611181539';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611181539';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191008';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191008';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191008';
+import { openDetail, openProduct } from './detail.js?v=202611191008';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191008';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },

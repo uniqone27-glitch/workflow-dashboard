@@ -226,6 +226,18 @@ export function demoBackend() {
         }
         if (table === 'brands') row.id = (db.brands.at(-1)?.id || 0) + 1;
         db[table].push(row);
+        if (table === 'comments' && ((row.mentions || []).length || (row.mention_roles || []).length)) {
+          const who = db.profiles.find((p) => p.id === uid())?.name || '';
+          const t = { package: db.package_requests, shoot: db.shoot_requests, design: db.design_requests }[row.entity_type];
+          const target = t?.find((x) => x.id === row.entity_id);
+          const pr = row.entity_type === 'product' ? db.products.find((x) => x.id === row.entity_id) : null;
+          const label = target?.code || pr?.retail_name || '';
+          const base = { entity_type: row.entity_type, entity_id: row.entity_id, actor_id: uid(), created_at: now(),
+            title: `${who}님이 댓글에서 언급했습니다`, body: `${label ? `${label} · ` : ''}${row.body.slice(0, 100)}` };
+          const push = (n) => { const r = { id: (db.notifications.at(-1)?.id || 0) + 1, target_role: null, target_user: null, ...base, ...n }; db.notifications.push(r); emit('notifications', 'INSERT', r); };
+          [...new Set(row.mentions || [])].filter((x) => x !== uid() && !(row.mention_roles || []).includes(db.profiles.find((p) => p.id === x)?.role)).forEach((u) => push({ target_user: u }));
+          [...new Set(row.mention_roles || [])].forEach((r) => push({ target_role: r }));
+        }
         if (table === 'products') db.launch_readiness.push({ product_id: row.id, followup: '미확인', shoot_needed: '미정', detail_needed: '미정', thumb_needed: '미정', launch_date: null, launch_state: '준비 전', note: null, updated_at: now() });
         log(table, 'create', row);
         emit(table, 'INSERT', row);
