@@ -1,10 +1,10 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable } from './store.js?v=202611191659';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191659';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191659';
-import { openDetail, openProduct } from './detail.js?v=202611191659';
-import { PATCH_NOTES } from './patchnotes.js?v=202611191659';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191659';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable } from './store.js?v=202611191709';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191709';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191709';
+import { openDetail, openProduct } from './detail.js?v=202611191709';
+import { PATCH_NOTES } from './patchnotes.js?v=202611191709';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191709';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -271,7 +271,7 @@ function exportExcel(rows, label) {
       요청유형: requestType(r), 요청부서: ROLES[KINDS[r._kind].requester], 요청자: profileName(r.requester_id),
       담당자: assigneeNames(r), 우선순위: r.priority, 상태: r.cancelled ? '취소' : r.status,
       요청일: (r.created_at || '').slice(0, 10), 희망완료일: r.due_date || '', 예상완료일: r.expected_date || '',
-      실제완료일: r.completed_date || '', 결과물URL: r.result_url || '',
+      실제완료일: r.completed_date || '', '결과물(URL·공유폴더 경로)': r.result_url || '',
     };
   });
   const name = `${label}_${today()}`;

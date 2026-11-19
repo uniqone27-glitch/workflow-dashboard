@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191659';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191659';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191659';
-import { openRequestForm, openProductForm } from './forms.js?v=202611191659';
-import { launchSummary, progCell, histText } from './views.js?v=202611191659';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191709';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191709';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191709';
+import { openRequestForm, openProductForm } from './forms.js?v=202611191709';
+import { launchSummary, progCell, histText } from './views.js?v=202611191709';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -365,7 +365,9 @@ function renderRequest(panel, kind, id) {
     ],
   }[kind];
 
-  const urlCol = kind === 'package' ? ['work_url', '작업 파일 URL'] : kind === 'design' ? ['figma_url', 'Figma 작업 URL'] : null;
+  // 패키지: 결과물은 공유폴더 경로(URL 아님)
+  const resultLabel = kind === 'package' ? '공유폴더 상세 경로' : kind === 'shoot' ? '촬영 결과물 URL' : '결과물 URL';
+  const urlCol = kind === 'package' ? ['work_url', '초안 확인 피그마 URL'] : kind === 'design' ? ['figma_url', 'Figma 작업 URL'] : null;
   const linkedDesigns = kind === 'shoot' ? requests('design').filter((d) => d.shoot_request_id === id) : [];
 
   el.innerHTML = `
@@ -410,7 +412,7 @@ function renderRequest(panel, kind, id) {
           <label class="field"><span>예상 완료일</span><input class="input" type="date" name="expected_date" value="${esc(r.expected_date || '')}"></label>
           <label class="field"><span>실제 완료일</span><input class="input" type="date" name="completed_date" value="${esc(r.completed_date || '')}"><small class="muted">완료 처리 시 자동 입력</small></label>
           ${urlCol ? `<label class="field wide"><span>${urlCol[1]}</span><input class="input" name="${urlCol[0]}" value="${esc(r[urlCol[0]] || '')}" placeholder="https://"></label>` : ''}
-          <label class="field wide"><span>${kind === 'shoot' ? '촬영 결과물 URL' : '결과물 URL'}</span><input class="input" name="result_url" value="${esc(r.result_url || '')}" placeholder="https://"></label>
+          <label class="field wide"><span>${resultLabel}</span><input class="input" name="result_url" value="${esc(r.result_url || '')}" ${kind === 'package' ? '' : 'placeholder="https://"'}></label>
           <label class="field wide"><span>${kind === 'shoot' ? '촬영 진행 메모' : '작업 메모'}</span><textarea class="input" name="work_memo" rows="3">${esc(r.work_memo || '')}</textarea></label>
         </div>
         <div class="row"><span class="muted small">${r.status_changed_at ? `상태 변경: ${esc(profileName(r.status_changed_by))} · ${fmtDateTime(r.status_changed_at)}` : ''}</span><div class="grow"></div><button class="btn btn-primary">처리 내용 저장</button></div>
@@ -420,7 +422,7 @@ function renderRequest(panel, kind, id) {
         kind === 'shoot' ? ['촬영 예정일', fmtDate(r.scheduled_date)] : null,
         ['예상 완료일', fmtDate(r.expected_date)], ['실제 완료일', fmtDate(r.completed_date)],
         urlCol ? [urlCol[1], linkify(r[urlCol[0]]), true] : null,
-        ['결과물 URL', linkify(r.result_url), true],
+        [resultLabel, kind === 'package' && r.result_url && !/^https?:\/\//i.test(r.result_url) ? esc(r.result_url) : linkify(r.result_url), true],
         ['작업 메모', nl(r.work_memo), true],
         ['상태 변경', r.status_changed_at ? `${esc(profileName(r.status_changed_by))} · ${fmtDateTime(r.status_changed_at)}` : '-', true],
       ])}
