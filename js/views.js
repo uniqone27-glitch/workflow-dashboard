@@ -1,9 +1,10 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191352';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191352';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191352';
-import { openDetail, openProduct } from './detail.js?v=202611191352';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191352';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191401';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191401';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191401';
+import { openDetail, openProduct } from './detail.js?v=202611191401';
+import { PATCH_NOTES } from './patchnotes.js?v=202611191401';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191401';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -11,6 +12,7 @@ export const ROUTES = [
   { name: 'shoot', no: '03', label: '촬영 요청' },
   { name: 'design', no: '04', label: '디자인 작업 요청' },
   { name: 'products', no: '05', label: '제품 통합 관리' },
+  { name: 'patchnotes', no: '06', label: '패치노트' },
   { name: 'admin', no: '⚙', label: '사용자 · 설정', admin: true },
   { name: 'tasks', label: '전체 업무', title: '전체 업무 목록', hidden: true },
 ];
@@ -20,7 +22,7 @@ export function renderView(route, el, fresh = false) {
   if (!fresh && el.dataset.route === route.name && el._update) { el._update(); return; }
   el.dataset.route = route.name;
   el._update = null;
-  const fn = { dashboard: dashboardView, package: requestView, shoot: requestView, design: requestView, tasks: requestView, products: productsView, admin: adminView }[route.name];
+  const fn = { dashboard: dashboardView, package: requestView, shoot: requestView, design: requestView, tasks: requestView, products: productsView, patchnotes: patchNotesView, admin: adminView }[route.name];
   fn(route, el);
 }
 
@@ -364,6 +366,32 @@ function productsView(route, el) {
   el._update = update;
 }
 
+// ===================================================================== 06 패치노트 (모든 사용자)
+const PN_TYPE_CLASS = { 신규: 'new', 수정: 'mod', 보완: 'imp' };
+function patchNotesView(route, el) {
+  let filter = '';
+  const areas = [...new Set(PATCH_NOTES.flatMap((n) => n.items.map((i) => i.area)))];
+  const draw = () => {
+    const notes = PATCH_NOTES.map((n) => ({ ...n, items: n.items.filter((i) => !filter || i.area === filter) })).filter((n) => n.items.length);
+    el.innerHTML = `
+      <div class="toolbar"><div class="seg-ctl pn-filter">
+        <button data-area="" class="${!filter ? 'on' : ''}">전체</button>
+        ${areas.map((a) => `<button data-area="${esc(a)}" class="${filter === a ? 'on' : ''}">${esc(a)}</button>`).join('')}
+      </div></div>
+      <div class="pn-list">${notes.map((n, idx) => `
+        <section class="card pn-card">
+          <div class="pn-head"><span class="pn-ver">${esc(n.version)}</span><h3>${esc(n.title)}</h3>
+            ${idx === 0 && !filter ? '<span class="tag new">최신</span>' : ''}<span class="grow"></span><time class="muted small">${esc(n.date.replace(/-/g, '.'))}</time></div>
+          <ul class="pn-items">${n.items.map((i) => `
+            <li><span class="pn-type ${PN_TYPE_CLASS[i.type] || ''}">${esc(i.type)}</span><span class="pn-area">${esc(i.area)}</span><span class="pn-text">${esc(i.text)}</span></li>`).join('')}</ul>
+        </section>`).join('') || '<p class="empty big">해당 업데이트가 없습니다.</p>'}</div>`;
+    $$('[data-area]', el).forEach((b) => b.addEventListener('click', () => { filter = b.dataset.area; draw(); }));
+  };
+  draw();
+  el._update = () => {};
+  markPatchNotesSeen();
+}
+
 // ===================================================================== 관리자
 function adminView(route, el) {
   const draw = () => {
@@ -446,4 +474,13 @@ function adminView(route, el) {
   };
   draw();
   el._update = draw;
+}
+
+// 새 패치노트 표시 (이 브라우저에서 마지막으로 본 버전 기준)
+const PN_KEY = 'fbg-patchnotes-seen';
+export function hasNewPatchNotes() {
+  try { return localStorage.getItem(PN_KEY) !== PATCH_NOTES[0]?.version; } catch { return false; }
+}
+function markPatchNotesSeen() {
+  try { localStorage.setItem(PN_KEY, PATCH_NOTES[0]?.version || ''); } catch { /* 저장 불가 시 무시 */ }
 }

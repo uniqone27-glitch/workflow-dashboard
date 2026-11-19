@@ -1,10 +1,10 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611191352';
-import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191352';
-import { KINDS } from './constants.js?v=202611191352';
-import { ROLES } from './constants.js?v=202611191352';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191352';
-import { renderView, ROUTES } from './views.js?v=202611191352';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191352';
+import { supabaseBackend, demoBackend } from './db.js?v=202611191401';
+import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191401';
+import { KINDS } from './constants.js?v=202611191401';
+import { ROLES } from './constants.js?v=202611191401';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191401';
+import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611191401';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191401';
 
 const cfg = window.APP_CONFIG || {};
 const params = new URLSearchParams(location.search);
@@ -222,6 +222,7 @@ function renderNav() {
     <a href="#/${x.name}" class="nav-item ${r === x.name ? 'active' : ''}">
       <span class="nav-no">${x.no || ''}</span><span>${x.label}</span>
       ${counts[x.name] ? `<span class="nav-count" title="신규 요청">${counts[x.name]}</span>` : ''}
+      ${x.name === 'patchnotes' && r !== 'patchnotes' && hasNewPatchNotes() ? '<span class="nav-new" title="새 업데이트">N</span>' : ''}
     </a>`).join('');
 }
 
