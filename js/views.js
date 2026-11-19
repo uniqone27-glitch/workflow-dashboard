@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable } from './store.js?v=202611191855';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191855';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191855';
-import { openDetail, openProduct } from './detail.js?v=202611191855';
-import { devReqView } from './devreq.js?v=202611191855';
-import { PATCH_NOTES } from './patchnotes.js?v=202611191855';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191855';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200852';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200852';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200852';
+import { openDetail, openProduct } from './detail.js?v=202611200852';
+import { devReqView } from './devreq.js?v=202611200852';
+import { PATCH_NOTES } from './patchnotes.js?v=202611200852';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200852';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -263,7 +263,36 @@ function requestTable(list, showKind) {
       </tr>`).join('')}</tbody></table></div>`;
 }
 
-function exportExcel(rows, label) {
+// 엑셀 다운로드: 제품 이미지(목록 썸네일과 동일) 포함, 모든 셀 가운데 정렬
+const EXCELJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+let excelJsLoading = null;
+function loadExcelJs() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  return (excelJsLoading ||= new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = EXCELJS_URL;
+    sc.onload = () => resolve(window.ExcelJS);
+    sc.onerror = () => { excelJsLoading = null; reject(new Error('엑셀 모듈을 불러오지 못했습니다.')); };
+    document.head.appendChild(sc);
+  }));
+}
+// 이미지 → PNG/JPEG (엑셀 호환 형식, 최대 480px로 축소)
+async function excelImage(url) {
+  try {
+    const blob = await (await fetch(url)).blob();
+    const bmpUrl = URL.createObjectURL(blob);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = bmpUrl; });
+    const k = Math.min(1, 480 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+    const w = Math.max(1, Math.round((img.naturalWidth || 480) * k)), h = Math.max(1, Math.round((img.naturalHeight || 480) * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(bmpUrl);
+    return { base64: c.toDataURL('image/jpeg', 0.88), w, h };
+  } catch { return null; }
+}
+const xlWidth = (v) => [...String(v ?? '')].reduce((n, ch) => n + (/[\u1100-\uffff]/.test(ch) ? 2 : 1), 0);
+
+async function exportExcel(rows, label) {
   if (!rows.length) return toast('내보낼 업무가 없습니다.');
   const data = rows.map((r) => {
     const p = product(r.product_id);
@@ -277,19 +306,63 @@ function exportExcel(rows, label) {
     };
   });
   const name = `${label}_${today()}`;
-  if (window.XLSX) {
-    const ws = window.XLSX.utils.json_to_sheet(data);
-    const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, '업무목록');
-    window.XLSX.writeFile(wb, `${name}.xlsx`);
-  } else {
-    const head = Object.keys(data[0]);
-    const csv = [head, ...data.map((d) => head.map((h) => d[h]))].map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
-    a.download = `${name}.csv`;
-    a.click();
-  }
+  toast('엑셀 파일을 만드는 중입니다… (이미지 포함)');
+  let ExcelJS;
+  try { ExcelJS = await loadExcelJs(); } catch (e) { return toast(errMsg(e), 'error'); }
+
+  // 제품 이미지: 목록 썸네일과 같은 이미지 (촬영 요청은 선택한 촬영 제품 이미지)
+  const atts = rows.map((r) => requestThumbAtt(r));
+  await ensureUrls(atts.filter(Boolean).map((a) => a.storage_path));
+  const imgs = new Array(rows.length).fill(null);
+  let next = 0;
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while (next < rows.length) {
+      const i = next++;
+      const u = atts[i] && S.urls[atts[i].storage_path];
+      if (u) imgs[i] = await excelImage(u);
+    }
+  }));
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('업무목록', { views: [{ state: 'frozen', ySplit: 1 }] });
+  const heads = ['제품 이미지', ...Object.keys(data[0])];
+  ws.columns = heads.map((h, i) => ({
+    header: h, key: h,
+    width: i === 0 ? 21 : Math.min(40, Math.max(10, xlWidth(h) + 2, ...data.map((d) => xlWidth(d[h]) + 2))),
+  }));
+  data.forEach((d) => ws.addRow({ ...d, '제품 이미지': '' }));
+  const center = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  ws.eachRow({ includeEmpty: true }, (row, n) => {
+    row.height = n === 1 ? 24 : 150;
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.alignment = center;
+      if (n === 1) {
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F5' } };
+      }
+      cell.border = { top: { style: 'thin', color: { argb: 'FFDDDDE2' } }, bottom: { style: 'thin', color: { argb: 'FFDDDDE2' } }, left: { style: 'thin', color: { argb: 'FFDDDDE2' } }, right: { style: 'thin', color: { argb: 'FFDDDDE2' } } };
+    });
+  });
+  // 이미지 셀 크기(px): 열 너비 21 ≈ 152px, 행 높이 150pt = 200px → 여백 두고 가운데 배치
+  const cellW = 152, cellH = 200, pad = 8;
+  imgs.forEach((im, i) => {
+    if (!im) return;
+    const k = Math.min((cellW - pad * 2) / im.w, (cellH - pad * 2) / im.h);
+    const w = Math.round(im.w * k), h = Math.round(im.h * k);
+    const id = wb.addImage({ base64: im.base64, extension: 'jpeg' });
+    ws.addImage(id, {
+      tl: { col: (cellW - w) / 2 / cellW, row: i + 1 + (cellH - h) / 2 / cellH },
+      ext: { width: w, height: h }, editAs: 'oneCell',
+    });
+  });
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = `${name}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  const miss = imgs.filter((x, i) => atts[i] && !x).length;
+  toast(`엑셀 파일을 내려받았습니다.${miss ? ` (이미지 ${miss}개는 불러오지 못했습니다)` : ''}`);
 }
 
 // ===================================================================== 제품 통합 관리
