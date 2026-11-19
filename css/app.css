@@ -486,3 +486,4 @@ img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,
 .dev-type.new { background: #e3f6ea; color: #1a7f37; }
 .dev-table td.dev-title { white-space: normal; min-width: 240px; }
 .dev-admin .field { margin: 12px 0; }
+.dev-form .input[readonly] { background: #f0f0f2; color: var(--text-2); }
