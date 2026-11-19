@@ -419,3 +419,14 @@ img[data-zoom] { cursor: zoom-in; }
 .spec-label { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .same-sel { font: 500 11px var(--font); color: var(--text-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 4px; background: var(--surface); }
 .variant-card .input:disabled { background: #f0f0f2; color: var(--text-2); }
+
+/* ---------- v1.3: 댓글 멘션 ---------- */
+.mention-wrap { position: relative; }
+.mention-menu { position: absolute; left: 0; top: calc(100% + 4px); z-index: 30; min-width: 220px; max-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 4px; display: grid; }
+.mention-menu[hidden] { display: none; }
+.mention-menu button { display: flex; align-items: baseline; gap: 8px; border: 0; background: none; text-align: left; padding: 7px 10px; border-radius: 8px; cursor: pointer; font: 13px var(--font); color: var(--text); }
+.mention-menu button small { color: var(--text-3); font-size: 11px; }
+.mention-menu button.on, .mention-menu button:hover { background: var(--accent-soft); }
+.mention { color: var(--accent); font-weight: 600; }
+.mention.mention-self { background: var(--accent-soft); border-radius: 4px; padding: 0 3px; }
+.comment.mentioned { border-color: var(--accent); }
