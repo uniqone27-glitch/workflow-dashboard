@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191309';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191309';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191309';
-import { openRequestForm, openProductForm } from './forms.js?v=202611191309';
-import { launchSummary, progCell, histText } from './views.js?v=202611191309';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191318';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191318';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191318';
+import { openRequestForm, openProductForm } from './forms.js?v=202611191318';
+import { launchSummary, progCell, histText } from './views.js?v=202611191318';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -345,6 +345,8 @@ function renderRequest(panel, kind, id) {
       ['디자인 레퍼런스 URL (카피 제품)', linkify(r.reference_url), true], ['추가 요청사항', nl(r.request_note), true],
     ],
     shoot: [
+      ['유통 제품명', esc(r.product_retail_name || p?.retail_name || '-')],
+      ['온라인 제품명', esc(r.product_online_name || p?.online_name || '-')],
       ['촬영 목적', esc(r.purpose) + (r.purpose_etc ? ` (${esc(r.purpose_etc)})` : '')],
       ['촬영 유형', esc((r.shoot_types || []).join(', ')) + (r.shoot_types_etc ? ` (${esc(r.shoot_types_etc)})` : '')],
       ['촬영 장소', esc(r.location || '-') + (r.location_etc ? ` (${esc(r.location_etc)})` : '')],
@@ -383,7 +385,7 @@ function renderRequest(panel, kind, id) {
     </div>
     ${r.cancelled ? `<div class="notice">취소된 요청입니다.${r.cancel_reason ? ` 사유: ${esc(r.cancel_reason)}` : ''}</div>` : ''}
 
-    <section class="section">${productCard(p, { specs: kind !== 'design' })}</section>
+    <section class="section">${p || kind !== 'shoot' ? productCard(p, { specs: kind !== 'design' }) : '<div class="product-card muted">등록되지 않은 제품 (직접 입력)</div>'}</section>
 
     <section class="section">
       <h3>요청 정보</h3>

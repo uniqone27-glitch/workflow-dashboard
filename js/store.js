@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191309';
-import { today, addDays } from './ui.js?v=202611191309';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191318';
+import { today, addDays } from './ui.js?v=202611191318';
 
 export const S = {
   db: null,
@@ -95,7 +95,8 @@ export function findRequest(kind, id) {
 export function requestTitle(r) {
   if (r._kind === 'design' || r.title) return r.title;
   const p = product(r.product_id);
-  return p ? pname(p) : '(삭제된 제품)';
+  if (p) return pname(p);
+  return r.product_retail_name || r.product_online_name || '(삭제된 제품)';
 }
 export function requestType(r) {
   if (r._kind === 'package') return r.design_type === '기타' && r.design_type_etc ? r.design_type_etc : r.design_type;

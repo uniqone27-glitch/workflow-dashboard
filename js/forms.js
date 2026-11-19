@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611191309';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611191318';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611191309';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611191309';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611191309';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611191318';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611191318';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611191318';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -170,7 +170,7 @@ function readProductSection(root) {
 }
 
 // ---------------------------------------------------------------- 제품 선택 / 자동 표시
-function productPicker(selected, { required = true, brandFilter = null } = {}) {
+function productPicker(selected, { required = true, brandFilter = null, manual = false } = {}) {
   const list = S.data.products.filter((p) => !brandFilter || String(p.brand_id) === String(brandFilter));
   const byBrand = {};
   list.forEach((p) => { (byBrand[brandName(p.brand_id)] ||= []).push(p); });
@@ -178,6 +178,7 @@ function productPicker(selected, { required = true, brandFilter = null } = {}) {
     <option value="">${required ? '제품을 선택하세요' : '연관 제품 없음'}</option>
     ${Object.entries(byBrand).map(([b, ps]) => `<optgroup label="${esc(b)}">${ps.map((p) => `
       <option value="${p.id}" ${p.id === selected ? 'selected' : ''}>${esc(pname(p))} · ${esc(p.category)} · ${esc(p.product_kind)}</option>`).join('')}</optgroup>`).join('')}
+    ${manual ? `<option value="__manual" ${selected === '__manual' ? 'selected' : ''}>직접 입력</option>` : ''}
   </select>`;
 }
 
@@ -411,6 +412,15 @@ export function openRequestForm(kind, opts = {}) {
     .filter((a) => !state.removeAtt.has(a.id));
   if (kind === 'design' && create && !state.req.brand_id && state.productId) state.req.brand_id = product(state.productId)?.brand_id;
   if (kind === 'design' && create && !state.req.title && state.productId && opts.multiType) state.req.title = pname(product(state.productId));
+  if (kind === 'shoot') {
+    state.manual = draftPayload.manual ?? (!!edit && !edit.product_id);
+    state._wasLinked = !!state.productId;
+    if (state.productId && !state.req.product_retail_name) {
+      const p0 = product(state.productId);
+      state.req.product_retail_name = p0?.retail_name || '';
+      state.req.product_online_name ??= p0?.online_name || '';
+    }
+  }
   if (kind === 'shoot' && create && !state.req.purpose && state.productId) {
     const pk = product(state.productId)?.product_kind;
     state.req.purpose = pk === '리뉴얼' ? '제품 리뉴얼' : pk === '신제품' ? '신제품 론칭' : '';
@@ -433,7 +443,11 @@ export function openRequestForm(kind, opts = {}) {
     const rf = $('.req-fields', body);
     if (rf) state.req = { ...state.req, ...readForm(rf), ...readPkgState(rf) };
     const pSel = $('.pick [name=product_id]', body);
-    if (pSel) state.productId = pSel.value || null;
+    if (pSel) {
+      state.manual = kind === 'shoot' && pSel.value === '__manual';
+      state.productId = state.manual ? null : pSel.value || null;
+    }
+    $$('.prod-names [name]', body).forEach((i) => { state.req[i.name] = i.value.trim(); });
     const bSel = $('.pick [name=brand_id]', body);
     if (bSel) state.req.brand_id = bSel.value ? Number(bSel.value) : null;
   };
@@ -450,8 +464,18 @@ export function openRequestForm(kind, opts = {}) {
     } else if (kind === 'package') {
       top = `<fieldset><legend>제품</legend>${productInfo(state.productId, 'package').replace(/<div class="dup-warn">[\s\S]*?<\/div>\s*<div class="product-info">/, '<div class="product-info">')}<p class="muted small">제품 정보는 제품 통합 관리에서 수정합니다.</p></fieldset>`;
     } else if (kind === 'shoot') {
-      top = `<fieldset class="pick"><legend>제품 선택 <b class="req">*</b></legend>${productPicker(state.productId)}
-        ${state.productId ? productInfo(state.productId, 'shoot') : '<p class="muted small">물류/발주팀이 등록한 제품을 선택하면 사양이 자동으로 표시됩니다.</p>'}</fieldset>`;
+      const chosen = state.manual || !!state.productId;
+      top = `<fieldset class="pick"><legend>제품 선택 <b class="req">*</b></legend>${productPicker(state.manual ? '__manual' : state.productId, { manual: true })}
+        <div class="form-grid prod-names">
+          <label class="field"><span>유통 제품명 <b class="req">*</b>${state.productId ? ' <small class="muted">물류/발주팀 등록 정보</small>' : ''}</span>
+            <input class="input" name="product_retail_name" value="${esc(state.req.product_retail_name || '')}" ${state.productId ? 'readonly' : ''} ${chosen ? '' : 'disabled'}
+              placeholder="${chosen ? '유통 제품명' : '제품을 선택하거나 「직접 입력」을 고르세요'}"></label>
+          <label class="field"><span>온라인 제품명</span>
+            <input class="input" name="product_online_name" value="${esc(state.req.product_online_name || '')}" ${chosen ? '' : 'disabled'} placeholder="온라인 제품명"></label>
+        </div>
+        ${state.productId ? productInfo(state.productId, 'shoot')
+          : state.manual ? '<p class="muted small">등록되지 않은 제품입니다. 유통 제품명과 온라인 제품명을 직접 입력하세요.</p>'
+          : '<p class="muted small">물류/발주팀이 등록한 제품을 선택하면 사양과 유통 제품명이 자동으로 표시됩니다. 목록에 없으면 「직접 입력」을 고르세요.</p>'}</fieldset>`;
     } else {
       const brands = S.data.brands.filter((b) => b.active || String(b.id) === String(state.req.brand_id));
       top = `<fieldset class="pick"><legend>브랜드 · 연관 제품</legend><div class="form-grid">
@@ -469,6 +493,15 @@ export function openRequestForm(kind, opts = {}) {
       if (kind === 'shoot') {
         // 제품이 바뀌면 물류/발주팀 이미지 선택만 초기화 (추가 업로드한 이미지는 유지)
         delete state.req.ref_existing;
+        if (state.productId) {
+          const p1 = product(state.productId);
+          state.req.product_retail_name = p1?.retail_name || '';
+          state.req.product_online_name = p1?.online_name || '';
+        } else if (state.manual && state._wasLinked) {
+          state.req.product_retail_name = '';
+          state.req.product_online_name = '';
+        }
+        state._wasLinked = !!state.productId;
         const pk = product(state.productId)?.product_kind;
         if (!state.req.purpose && pk) state.req.purpose = pk === '리뉴얼' ? '제품 리뉴얼' : '신제품 론칭';
       }
@@ -535,7 +568,7 @@ export function openRequestForm(kind, opts = {}) {
   $('[data-draft]', m.el)?.addEventListener('click', async () => {
     snapshot();
     const title = state.newProduct?.retail_name || state.newProduct?.online_name || (state.productId && pname(product(state.productId))) || state.req.title || '(제목 없음)';
-    const payload = { productMode: state.productMode, productId: state.productId, newProduct: state.newProduct, req: state.req };
+    const payload = { productMode: state.productMode, productId: state.productId, manual: state.manual, newProduct: state.newProduct, req: state.req };
     try {
       if (opts.draft) await S.db.update('drafts', { id: opts.draft.id }, { payload, title, updated_at: new Date().toISOString() });
       else opts.draft = (await S.db.insert('drafts', { kind, title, payload }))[0];
@@ -554,7 +587,10 @@ export function openRequestForm(kind, opts = {}) {
     const files = [...state.files.req];
     const linkIds = kind === 'shoot' && create ? (state.req.ref_existing || []) : [];
     const missing = [];
-    if (kind !== 'design' && !state.productId && state.productMode !== 'new') missing.push('제품');
+    if (kind === 'shoot') {
+      if (!state.productId && !state.manual) missing.push('제품');
+      else if (!state.req.product_retail_name) missing.push('유통 제품명');
+    } else if (kind !== 'design' && !state.productId && state.productMode !== 'new') missing.push('제품');
     if (create && kind === 'package' && !(req.design_types || []).length) missing.push('요청 디자인 유형');
     if (kind === 'shoot' && !(req.shoot_types || []).length) missing.push('촬영 유형');
     if (create && kind === 'design' && !(req.work_types || []).length) missing.push('작업 유형');
@@ -654,7 +690,7 @@ function requestColumns(kind) {
   const common = ['product_id', 'priority', 'due_date', 'reference_url', 'request_note'];
   return {
     package: [...common, 'design_type', 'design_type_etc', 'package_spec', 'required_text', 'print_notes'],
-    shoot: [...common, 'purpose', 'purpose_etc', 'shoot_types', 'shoot_types_etc', 'location', 'location_etc', 'shoot_options', 'quantity', 'caution', 'desired_shoot_date'],
+    shoot: [...common, 'product_retail_name', 'product_online_name', 'purpose', 'purpose_etc', 'shoot_types', 'shoot_types_etc', 'location', 'location_etc', 'shoot_options', 'quantity', 'caution', 'desired_shoot_date'],
     design: [...common, 'brand_id', 'shoot_request_id', 'work_type', 'title', 'purpose', 'channels', 'channels_etc', 'plan_url', 'caution'],
   }[kind];
 }

@@ -1,9 +1,9 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191309';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191309';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191309';
-import { openDetail, openProduct } from './detail.js?v=202611191309';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191309';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191318';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191318';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191318';
+import { openDetail, openProduct } from './detail.js?v=202611191318';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191318';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -198,7 +198,7 @@ function requestView(route, el) {
       if (f.special === 'week' && !dueThisWeek(r)) return false;
       if (f.special === 'mine' && r.assignee_id !== S.me.id && r.requester_id !== S.me.id) return false;
       if (q) {
-        const hay = [r.code, requestTitle(r), p?.online_name, p?.retail_name, requestType(r), profileName(r.requester_id), profileName(r.assignee_id)].join(' ').toLowerCase();
+        const hay = [r.code, requestTitle(r), p?.online_name, p?.retail_name, r.product_retail_name, r.product_online_name, requestType(r), profileName(r.requester_id), profileName(r.assignee_id)].join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -262,7 +262,7 @@ function exportExcel(rows, label) {
     const p = product(r.product_id);
     return {
       요청번호: r.code, 구분: KINDS[r._kind].label, 브랜드: requestBrand(r), '제품명/작업명': requestTitle(r),
-      유통제품명: p?.retail_name || '', 온라인제품명: p?.online_name || '', 카테고리: p?.category || '', 입고예정일: p?.arrival_date || '', 입고예정수량: p?.arrival_qty ?? '',
+      유통제품명: p?.retail_name || r.product_retail_name || '', 온라인제품명: r.product_online_name || p?.online_name || '', 카테고리: p?.category || '', 입고예정일: p?.arrival_date || '', 입고예정수량: p?.arrival_qty ?? '',
       요청유형: requestType(r), 요청부서: ROLES[KINDS[r._kind].requester], 요청자: profileName(r.requester_id),
       담당자: r.assignee_id ? profileName(r.assignee_id) : '', 우선순위: r.priority, 상태: r.cancelled ? '취소' : r.status,
       요청일: (r.created_at || '').slice(0, 10), 희망완료일: r.due_date || '', 예상완료일: r.expected_date || '',
