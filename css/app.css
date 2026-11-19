@@ -471,3 +471,6 @@ img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,
 
 /* ---------- v1.8: 촬영 제품 이미지 ---------- */
 .ref-field + .field { margin-top: 2px; }
+
+/* ---------- v1.9: 담당자 다중 선택 ---------- */
+.assignee-pick { margin-top: 2px; }
