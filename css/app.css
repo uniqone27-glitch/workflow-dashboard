@@ -434,3 +434,8 @@ img[data-zoom] { cursor: zoom-in; }
 /* ---------- v1.4: 슬랙 DM 설정 ---------- */
 .slack-cell { display: flex; align-items: center; gap: 8px; }
 .slack-cell .input { width: 120px; }
+
+/* ---------- v1.5: 촬영 참고 이미지 (선택 + 추가 업로드) ---------- */
+.ref-sec { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-top: 6px; background: var(--surface-2); }
+.ref-sec h5 { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--text); }
+.ref-sec h5 small { font-weight: 400; }
