@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611191401';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611191501';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611191401';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611191401';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611191401';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611191501';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611191501';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611191501';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -226,14 +226,14 @@ function logisticsImages(pid) {
     (a.entity_type === 'product' && a.entity_id === pid) || (a.entity_type === 'package' && pkgIds.has(a.entity_id))
   )).filter((a) => !seen.has(a.storage_path) && seen.add(a.storage_path));
 }
-function shootRefField(r) {
+// 촬영 제품 이미지: 물류/발주팀 등록 이미지 선택 + 촬영 제품 이미지 추가 업로드
+function shootProductImgField(r) {
   const imgs = logisticsImages(r.product_id);
   const picked = new Set(r.ref_existing || []);
-  // 물류/발주팀 이미지 선택 + 새 이미지 추가 업로드를 함께 사용 (둘 다 제출 시 첨부)
-  return `<div class="field wide ref-field"><span>참고 이미지 첨부</span>
+  return `<div class="field wide ref-field"><span>촬영 제품 이미지</span>
     <div class="ref-sec">
       <h5>물류/발주팀 등록 이미지에서 선택</h5>
-      ${!r.product_id ? '<p class="muted small">먼저 제품을 선택하세요.</p>'
+      ${!r.product_id ? `<p class="muted small">${r._manual ? '직접 입력한 제품은 물류/발주팀 등록 이미지가 없습니다. 아래에서 촬영 제품 이미지를 추가하세요.' : '먼저 제품을 선택하세요.'}</p>`
         : imgs.length ? `<div class="ref-pick">${imgs.map((a) => `
           <label class="ref-item"><input type="checkbox" data-multi name="ref_existing" value="${a.id}" ${picked.has(a.id) ? 'checked' : ''}>
             <img data-src-path="${esc(a.storage_path)}" src="${esc(S.urls[a.storage_path] || '')}" alt=""><span>${esc(a.file_name)}</span></label>`).join('')}</div>
@@ -241,7 +241,16 @@ function shootRefField(r) {
         : '<p class="muted small">이 제품에 물류/발주팀이 등록한 이미지가 없습니다.</p>'}
     </div>
     <div class="ref-sec">
-      <h5>추가 이미지 업로드 <small class="muted">선택한 이미지와 함께 첨부됩니다</small></h5>
+      <h5>촬영 제품 이미지 추가 <small class="muted">물류/발주팀 이미지 외에 촬영할 제품 이미지가 더 있으면 첨부하세요</small></h5>
+      ${fileDrop('prodimg', { accept: 'image/*', text: '이미지 파일 선택 (여러 장 가능)' })}
+    </div>
+  </div>`;
+}
+// 참고 이미지: 레퍼런스 이미지 업로드
+function shootRefField() {
+  return `<div class="field wide ref-field"><span>참고 이미지 첨부</span>
+    <div class="ref-sec">
+      <h5>레퍼런스 이미지 업로드 <small class="muted">원하는 촬영 분위기·구도 등 참고 이미지</small></h5>
       ${fileDrop('req', { accept: 'image/*', text: '이미지 파일 선택 (여러 장 가능)' })}
     </div>
   </div>`;
@@ -351,6 +360,7 @@ function requestFields(kind, r, { create, multiType }) {
     const optNames = optionNames(p);
     return `
     <fieldset><legend>촬영 요청 내용</legend><div class="form-grid">
+      ${create ? shootProductImgField(r) : ''}
       <label class="field"><span>촬영 목적 <b class="req">*</b></span><select class="input" name="purpose" required>${options(keep(SHOOT_PURPOSES, r.purpose), r.purpose, { empty: '선택' })}</select></label>
       <label class="field"><span>직접 입력(기타 선택 시)</span><input class="input" name="purpose_etc" value="${esc(r.purpose_etc || '')}"></label>
       <div class="field wide"><span>촬영 유형 <b class="req">*</b> <small class="muted">복수 선택</small></span>${checks('shoot_types', keep(SHOOT_TYPES, r.shoot_types), r.shoot_types || [])}</div>
@@ -362,7 +372,7 @@ function requestFields(kind, r, { create, multiType }) {
       <label class="field"><span>촬영 희망일</span><input class="input" type="date" name="desired_shoot_date" value="${esc(r.desired_shoot_date || '')}"></label>
       <label class="field wide"><span>촬영 유의사항</span><textarea class="input" rows="2" name="caution">${esc(r.caution || '')}</textarea></label>
       <label class="field wide"><span>촬영 레퍼런스 URL</span><input class="input" name="reference_url" value="${esc(r.reference_url || '')}" placeholder="https://"></label>
-      ${create ? shootRefField(r) : files}
+      ${create ? shootRefField() : files}
       <label class="field wide"><span>추가 요청사항</span><textarea class="input" rows="2" name="request_note">${esc(r.request_note || '')}</textarea></label>
     </div></fieldset>
     <fieldset><legend>일정 및 우선순위</legend><div class="form-grid">${pr}</div></fieldset>`;
@@ -405,7 +415,7 @@ export function openRequestForm(kind, opts = {}) {
     newProduct: draftPayload.newProduct || {},
     req: draftPayload.req || { ...(edit || {}), product_id: opts.productId || edit?.product_id || null, shoot_request_id: opts.shootId || edit?.shoot_request_id || null },
   };
-  state.files = { req: [], pimg: [] };
+  state.files = { req: [], pimg: [], prodimg: [] };
   state.removeAtt = new Set();
   // 수정 화면: 이 요청의 기존 첨부 (패키지는 제품 이미지 포함)
   const existingAtts = () => (edit ? [...attachmentsOf(kind, edit.id), ...(kind === 'package' ? productImages(edit.product_id) : [])] : [])
@@ -454,7 +464,7 @@ export function openRequestForm(kind, opts = {}) {
 
   const draw = () => {
     if (kind === 'design') state.req.product_id = state.productId;
-    if (kind === 'shoot') state.req.product_id = state.productId;
+    if (kind === 'shoot') { state.req.product_id = state.productId; state.req._manual = !!state.manual; }
     let top = '';
     if (kind === 'package' && create) {
       top = `<div class="seg-ctl mode">
@@ -661,10 +671,12 @@ export function openRequestForm(kind, opts = {}) {
       const reqFiles = kind === 'package' && pid ? files.filter((f) => !isImg(f)) : files;
       if (kind === 'package' && pid && files.some(isImg)) await uploadFiles('product', pid, 'product_image', files.filter(isImg));
       for (const c of created) if (reqFiles.length) await uploadFiles(kind, c.id, 'reference', reqFiles);
+      // 촬영 요청: 촬영 제품 이미지 추가 업로드
+      if (kind === 'shoot' && state.files.prodimg.length) for (const c of created) await uploadFiles(kind, c.id, 'product_image', state.files.prodimg);
       // 촬영 요청: 물류/발주팀 이미지를 다시 올리지 않고 같은 파일로 연결
       if (linkIds.length) {
         const src = S.data.attachments.filter((a) => linkIds.includes(a.id));
-        const rows = created.flatMap((c) => src.map((a) => ({ entity_type: kind, entity_id: c.id, kind: 'reference', storage_path: a.storage_path, file_name: a.file_name, mime_type: a.mime_type, size_bytes: a.size_bytes })));
+        const rows = created.flatMap((c) => src.map((a) => ({ entity_type: kind, entity_id: c.id, kind: 'product_image', storage_path: a.storage_path, file_name: a.file_name, mime_type: a.mime_type, size_bytes: a.size_bytes })));
         if (rows.length) await S.db.insert('attachments', rows);
       }
       if (opts.draft) await S.db.remove('drafts', { id: opts.draft.id }).catch(() => {});

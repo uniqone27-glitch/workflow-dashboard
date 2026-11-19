@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191401';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191401';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191401';
-import { openRequestForm, openProductForm } from './forms.js?v=202611191401';
-import { launchSummary, progCell, histText } from './views.js?v=202611191401';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191501';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191501';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191501';
+import { openRequestForm, openProductForm } from './forms.js?v=202611191501';
+import { launchSummary, progCell, histText } from './views.js?v=202611191501';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -394,7 +394,8 @@ function renderRequest(panel, kind, id) {
         ['요청일', fmtDateTime(r.created_at)], ['희망 완료일', `<span class="${isOverdue(r) ? 'over' : ''}">${fmtDate(r.due_date)}${isOverdue(r) ? ' (기한 초과)' : ''}</span>`],
         ...reqRows,
       ])}
-      ${attachmentBlock(kind, id, ['reference', 'file'], { title: '참고 이미지 · 첨부파일', uploadKind: editable ? 'reference' : null })}
+      ${kind === 'shoot' ? attachmentBlock(kind, id, ['product_image'], { title: '촬영 제품 이미지', uploadKind: editable ? 'product_image' : null, empty: '첨부된 촬영 제품 이미지가 없습니다.' }) : ''}
+      ${attachmentBlock(kind, id, ['reference', 'file'], { title: kind === 'shoot' ? '참고(레퍼런스) 이미지 · 첨부파일' : '참고 이미지 · 첨부파일', uploadKind: editable ? 'reference' : null })}
     </section>
 
     <section class="section work">

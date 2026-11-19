@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191401';
-import { today, addDays } from './ui.js?v=202611191401';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191501';
+import { today, addDays } from './ui.js?v=202611191501';
 
 export const S = {
   db: null,
@@ -62,10 +62,11 @@ export function productThumb(pid) {
 const isImgAtt = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(a.file_name || '');
 // 촬영 요청 목록 썸네일: 요청서에서 선택한 물류/발주팀 이미지 → 없으면 새로 올린 첫 이미지 → 없으면 제품 대표 이미지
 function shootImage(id) {
-  const own = (a) => (a.storage_path.startsWith('shoot/') ? 1 : 0);  // 새로 올린 파일은 shoot/ 경로
+  // 촬영 제품 이미지(선택한 물류/발주팀 이미지 → 추가한 제품 이미지) 우선, 레퍼런스 이미지는 마지막
+  const rank = (a) => (a.kind === 'product_image' ? (a.storage_path.startsWith('shoot/') ? 1 : 0) : a.storage_path.startsWith('shoot/') ? 3 : 2);
   return S.data.attachments
     .filter((a) => a.entity_type === 'shoot' && a.entity_id === id && isImgAtt(a))
-    .sort((a, b) => own(a) - own(b) || (a.created_at > b.created_at ? 1 : -1))[0];
+    .sort((a, b) => rank(a) - rank(b) || (a.created_at > b.created_at ? 1 : -1))[0];
 }
 export function requestThumb(r) {
   if (r?._kind === 'shoot') {
