@@ -1,0 +1,27 @@
+{
+  "display_information": {
+    "name": "FBG 대시보드 알림",
+    "description": "FBG Cooperation Dashboard 작업 상태 변경·멘션 알림",
+    "background_color": "#0071e3"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "FBG 대시보드",
+      "always_online": true
+    },
+    "app_home": {
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": ["chat:write", "im:write", "users:read", "users:read.email"]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}
