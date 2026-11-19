@@ -1,8 +1,8 @@
 // 06 개발요청: 대시보드 수정·보완·신규 기능·오류 요청 (모든 구성원)
-import { S, can, profileName, attachmentsOf, loadTable, ensureUrls } from './store.js?v=202611191840';
-import { ROLES } from './constants.js?v=202611191840';
-import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce } from './ui.js?v=202611191840';
-import { openDrawer, findPanel, attachmentBlock, bindAttachments, commentsBlock, bindComments, uploadFiles, isImage } from './detail.js?v=202611191840';
+import { S, can, profileName, attachmentsOf, loadTable, ensureUrls } from './store.js?v=202611191855';
+import { ROLES } from './constants.js?v=202611191855';
+import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce } from './ui.js?v=202611191855';
+import { openDrawer, findPanel, attachmentBlock, bindAttachments, commentsBlock, bindComments, uploadFiles, isImage } from './detail.js?v=202611191855';
 
 export const DEV_TYPES = ['오류', '수정', '보완', '신규 기능'];
 export const DEV_AREAS = ['공통', '통합 대시보드', '패키지 디자인 요청', '촬영 요청', '디자인 작업 요청', '제품 통합 관리', '사용자 · 설정', '기타'];
@@ -69,10 +69,16 @@ export function devReqView(route, el) {
 export function openDevForm(edit = null) {
   const r = edit || { req_type: '', area: '공통', priority: '보통' };
   let files = [];
+  // 작성자·요청일자는 자동 기록 (수정 시에는 처음 등록한 사람·날짜)
+  const wid = edit ? edit.requester_id : S.me.id;
+  const wrole = ROLES[S.data.profiles.find((p) => p.id === wid)?.role] || '';
+  const writer = `${profileName(wid)}${wrole ? ` (${wrole})` : ''}`;
   const m = openModal(`
     <form class="dev-form" novalidate>
       <div class="modal-head"><h2>${edit ? `개발 요청 수정 <span class="muted mono small">${esc(edit.code)}</span>` : '개발 요청하기'}</h2><button type="button" class="icon-btn" data-close>✕</button></div>
       <div class="modal-body"><div class="form-grid">
+        <label class="field"><span>작성자</span><input class="input" value="${esc(writer)}" readonly></label>
+        <label class="field"><span>요청일자</span><input class="input" value="${esc(fmtDate(edit ? edit.created_at : new Date().toISOString()))}" readonly></label>
         <div class="field wide"><span>요청 유형 <b class="req">*</b></span>
           <div class="checks">${DEV_TYPES.map((t) => `<label class="check"><input type="radio" name="req_type" value="${t}" ${r.req_type === t ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
           <small class="muted">오류: 동작이 잘못됨 · 수정: 문구·항목 변경 · 보완: 기존 기능 개선 · 신규 기능: 새로 필요한 기능</small></div>
