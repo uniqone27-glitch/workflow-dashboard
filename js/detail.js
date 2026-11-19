@@ -1,9 +1,9 @@
-import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191501';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191501';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191501';
-import { openRequestForm, openProductForm } from './forms.js?v=202611191501';
-import { launchSummary, progCell, histText } from './views.js?v=202611191501';
+import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, brandName, launchOf, designers,
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191659';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191659';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191659';
+import { openRequestForm, openProductForm } from './forms.js?v=202611191659';
+import { launchSummary, progCell, histText } from './views.js?v=202611191659';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -279,6 +279,7 @@ function bindComments(el, rerender) {
 }
 
 function fmtVal(k, v) {
+  if (k === 'assignee_ids') return (v || []).map(profileName).join(', ') || '미배정';
   if (v === null || v === undefined || v === '') return '(없음)';
   if (k.endsWith('_id') && typeof v === 'string' && k !== 'product_id' && k !== 'shoot_request_id') return profileName(v);
   if (k === 'brand_id') return brandName(v);
@@ -293,7 +294,7 @@ async function loadHistory(container, entity, id) {
     const rows = await S.db.list('history', { eq: { entity_type: entity, entity_id: id }, limit: 200 });
     container.innerHTML = rows.length ? `<ol class="timeline">${rows.map((h) => `
       <li><div class="t-head"><strong>${esc(histText(h))}</strong><span class="muted small">${esc(profileName(h.actor_id))} · ${fmtDateTime(h.created_at)}</span></div>
-        ${h.action !== 'create' && h.action !== 'delete' ? `<ul class="t-changes">${Object.entries(h.changes || {}).map(([k, c]) => `
+        ${h.action !== 'create' && h.action !== 'delete' ? `<ul class="t-changes">${Object.entries(h.changes || {}).filter(([k]) => !(k === 'assignee_id' && 'assignee_ids' in h.changes)).map(([k, c]) => `
           <li><span>${esc(FIELD_LABELS[k] || k)}</span> ${esc(fmtVal(k, c.from))} → <b>${esc(fmtVal(k, c.to))}</b></li>`).join('')}</ul>` : ''}
       </li>`).join('')}</ol>` : '<p class="muted small">이력이 없습니다.</p>';
   } catch (e) { container.innerHTML = `<p class="muted small">${esc(errMsg(e))}</p>`; }
@@ -404,7 +405,7 @@ function renderRequest(panel, kind, id) {
       <form class="work-form">
         <div class="status-pick">${STATUSES.map((s) => `<label><input type="radio" name="status" value="${s}" ${r.status === s ? 'checked' : ''}><span>${s}</span></label>`).join('')}</div>
         <div class="form-grid">
-          <label class="field"><span>담당 ${kind === 'shoot' ? '자' : '디자이너'}</span><select class="input" name="assignee_id">${options(designers().map((d) => [d.id, d.name]), r.assignee_id, { empty: '미배정' })}</select></label>
+          <div class="field wide"><span>담당 ${kind === 'shoot' ? '자' : '디자이너'} <small class="muted">여러 명 선택 가능 · 선택하지 않으면 미배정</small></span>${assigneePick(r)}</div>
           ${kind === 'shoot' ? `<label class="field"><span>촬영 예정일</span><input class="input" type="date" name="scheduled_date" value="${esc(r.scheduled_date || '')}"></label>` : ''}
           <label class="field"><span>예상 완료일</span><input class="input" type="date" name="expected_date" value="${esc(r.expected_date || '')}"></label>
           <label class="field"><span>실제 완료일</span><input class="input" type="date" name="completed_date" value="${esc(r.completed_date || '')}"><small class="muted">완료 처리 시 자동 입력</small></label>
@@ -414,7 +415,7 @@ function renderRequest(panel, kind, id) {
         </div>
         <div class="row"><span class="muted small">${r.status_changed_at ? `상태 변경: ${esc(profileName(r.status_changed_by))} · ${fmtDateTime(r.status_changed_at)}` : ''}</span><div class="grow"></div><button class="btn btn-primary">처리 내용 저장</button></div>
       </form>` : fields([
-        ['담당자', r.assignee_id ? esc(profileName(r.assignee_id)) : '<span class="muted">미배정</span>'],
+        ['담당자', assigneesOf(r).length ? esc(assigneeNames(r)) : '<span class="muted">미배정</span>'],
         ['진행 상태', statusPill(r.status, r.cancelled)],
         kind === 'shoot' ? ['촬영 예정일', fmtDate(r.scheduled_date)] : null,
         ['예상 완료일', fmtDate(r.expected_date)], ['실제 완료일', fmtDate(r.completed_date)],
@@ -459,7 +460,12 @@ function renderRequest(panel, kind, id) {
       e.preventDefault();
       const v = readForm(wf);
       const patch = {};
-      meta.workCols.forEach((c) => { if (c in v && (v[c] ?? null) !== (r0[c] ?? null)) patch[c] = v[c]; });
+      meta.workCols.forEach((c) => {
+        if (!(c in v)) return;
+        if (c === 'assignee_ids') { if ((v[c] || []).join() !== assigneesOf(r0).join()) patch[c] = v[c] || []; return; }
+        if ((v[c] ?? null) !== (r0[c] ?? null)) patch[c] = v[c];
+      });
+      if ('assignee_ids' in patch) patch.assignee_id = patch.assignee_ids[0] || null;  // 대표 담당자 (예전 데이터 호환)
       if (patch.status && patch.status !== '완료' && !('completed_date' in patch)) patch.completed_date = null;
       if (!Object.keys(patch).length) return toast('변경된 내용이 없습니다.');
       try {
@@ -509,7 +515,7 @@ function renderProduct(panel, pid) {
   const optVal = (o, k) => (k === 'color1' ? o.color1 || o.color : o[k]);
   const reqList = (kind, list) => list.length ? list.map((r) => `
     <button class="mini-row" data-open-req="${kind}:${r.id}"><span class="grow"><strong>${esc(kind === 'design' ? r.title : requestType({ ...r, _kind: kind }))}</strong>
-      <small>${esc(r.code)} · ${esc(profileName(r.assignee_id))} · 희망 ${fmtDate(r.due_date)}</small></span>${statusPill(r.status, r.cancelled)}</button>`).join('') : '<p class="muted small">없음</p>';
+      <small>${esc(r.code)} · ${esc(assigneeNames(r) || '미배정')} · 희망 ${fmtDate(r.due_date)}</small></span>${statusPill(r.status, r.cancelled)}</button>`).join('') : '<p class="muted small">없음</p>';
   const allOf = (kind) => requests(kind).filter((r) => r.product_id === pid);
 
   el.innerHTML = `
@@ -624,4 +630,13 @@ function renderProduct(panel, pid) {
   const imgs = attachmentsOf('product', pid).filter(isImage).map((a) => a.storage_path);
   if (imgs.some((x) => !S.urls[x])) ensureUrls(imgs).then(() => { if (!panel._imgOnce) { panel._imgOnce = true; rerender(); } });
   loadHistory($('.history-box', el), 'product', pid);
+}
+
+// 담당자 다중 선택 (체크 칩). 퇴사 등으로 목록에 없는 기존 담당자도 표시
+function assigneePick(r) {
+  const cur = assigneesOf(r);
+  const list = designers().map((d) => [d.id, d.name]);
+  cur.filter((id) => !list.some(([x]) => x === id)).forEach((id) => list.push([id, profileName(id)]));
+  return `<div class="checks assignee-pick">${list.map(([id, name]) => `
+    <label class="check"><input type="checkbox" data-multi name="assignee_ids" value="${esc(id)}" ${cur.includes(id) ? 'checked' : ''}><span>${esc(name)}</span></label>`).join('')}</div>`;
 }

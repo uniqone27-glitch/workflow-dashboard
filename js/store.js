@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191501';
-import { today, addDays } from './ui.js?v=202611191501';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191659';
+import { today, addDays } from './ui.js?v=202611191659';
 
 export const S = {
   db: null,
@@ -50,6 +50,10 @@ export const product = (id) => S.data.products.find((p) => p.id === id);
 export const pname = (p) => (p ? p.retail_name || p.online_name || '(이름 없음)' : '');
 export const psub = (p) => (p && p.retail_name && p.online_name && p.online_name !== p.retail_name ? `온라인: ${p.online_name}` : '');
 export const launchOf = (pid) => S.data.launch_readiness.find((l) => l.product_id === pid) || {};
+// 담당자 (여러 명). 예전 단일 담당자(assignee_id)만 있는 데이터도 지원
+export const assigneesOf = (r) => (r?.assignee_ids?.length ? r.assignee_ids : r?.assignee_id ? [r.assignee_id] : []);
+export const isAssignee = (r, uid) => assigneesOf(r).includes(uid);
+export const assigneeNames = (r) => assigneesOf(r).map(profileName).join(', ');
 export const designers = () => S.data.profiles.filter((p) => p.active && (p.role === 'design' || p.role === 'admin'));
 
 export function productImages(pid) {

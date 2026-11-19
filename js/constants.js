@@ -20,17 +20,17 @@ export const KINDS = {
   package: {
     table: 'package_requests', label: '패키지 디자인 요청', short: '패키지',
     requester: 'logistics', route: 'package',
-    workCols: ['status', 'assignee_id', 'expected_date', 'work_memo', 'work_url', 'result_url', 'completed_date'],
+    workCols: ['status', 'assignee_ids', 'expected_date', 'work_memo', 'work_url', 'result_url', 'completed_date'],
   },
   shoot: {
     table: 'shoot_requests', label: '촬영 요청', short: '촬영',
     requester: 'brand', route: 'shoot',
-    workCols: ['status', 'assignee_id', 'scheduled_date', 'expected_date', 'work_memo', 'result_url', 'completed_date'],
+    workCols: ['status', 'assignee_ids', 'scheduled_date', 'expected_date', 'work_memo', 'result_url', 'completed_date'],
   },
   design: {
     table: 'design_requests', label: '디자인 작업 요청', short: '디자인',
     requester: 'brand', route: 'design',
-    workCols: ['status', 'assignee_id', 'expected_date', 'work_memo', 'figma_url', 'result_url', 'completed_date'],
+    workCols: ['status', 'assignee_ids', 'expected_date', 'work_memo', 'figma_url', 'result_url', 'completed_date'],
   },
 };
 
@@ -234,7 +234,7 @@ export function specLabel(key) {
 
 // 이력 표시용 컬럼 한글명
 export const FIELD_LABELS = {
-  status: '상태', assignee_id: '담당자', expected_date: '예상 완료일', work_memo: '작업 메모',
+  status: '상태', assignee_id: '담당자', assignee_ids: '담당자', expected_date: '예상 완료일', work_memo: '작업 메모',
   work_url: '작업 파일 URL', result_url: '결과물 URL', figma_url: 'Figma URL', completed_date: '실제 완료일',
   scheduled_date: '촬영 예정일', priority: '우선순위', due_date: '희망 완료일', cancelled: '취소',
   cancel_reason: '취소 사유', design_type: '디자인 유형', design_type_etc: '디자인 유형(기타)',

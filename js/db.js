@@ -133,9 +133,9 @@ export function demoBackend() {
   const ENT = { products: 'product', package_requests: 'package', shoot_requests: 'shoot', design_requests: 'design', launch_readiness: 'product' };
   const REQ = { package_requests: ['logistics', 'PKG', ['design', 'brand']], shoot_requests: ['brand', 'SHT', ['design']], design_requests: ['brand', 'DSN', ['design']] };
   const WORK = {
-    package_requests: ['status', 'assignee_id', 'expected_date', 'work_memo', 'work_url', 'result_url', 'completed_date'],
-    shoot_requests: ['status', 'assignee_id', 'scheduled_date', 'expected_date', 'work_memo', 'result_url', 'completed_date'],
-    design_requests: ['status', 'assignee_id', 'expected_date', 'work_memo', 'figma_url', 'result_url', 'completed_date'],
+    package_requests: ['status', 'assignee_id', 'assignee_ids', 'expected_date', 'work_memo', 'work_url', 'result_url', 'completed_date'],
+    shoot_requests: ['status', 'assignee_id', 'assignee_ids', 'scheduled_date', 'expected_date', 'work_memo', 'result_url', 'completed_date'],
+    design_requests: ['status', 'assignee_id', 'assignee_ids', 'expected_date', 'work_memo', 'figma_url', 'result_url', 'completed_date'],
   };
   const WRITE = {
     products: ['admin', 'logistics'], launch_readiness: ['admin', 'brand'], brands: ['admin', 'logistics', 'brand'],
@@ -174,7 +174,10 @@ export function demoBackend() {
     const body = `${row.code} · ${row.title || pname}`;
     if (op === 'create') req[2].forEach((r) => notify({ target_role: r, title: `신규 ${title}`, body }));
     if (changes.status) notify({ target_role: req[0], title: row.status === '완료' ? `${title} 완료` : `${title} 상태 변경: ${row.status}`, body });
-    if (changes.assignee_id && row.assignee_id) notify({ target_user: row.assignee_id, title: `${title} 담당자로 배정됨`, body });
+    if (changes.assignee_ids) {
+      const prev = before?.assignee_ids?.length ? before.assignee_ids : before?.assignee_id ? [before.assignee_id] : [];
+      (row.assignee_ids || []).filter((u) => !prev.includes(u)).forEach((u) => notify({ target_user: u, title: `${title} 담당자로 배정됨`, body }));
+    } else if (changes.assignee_id && row.assignee_id) notify({ target_user: row.assignee_id, title: `${title} 담당자로 배정됨`, body });
   }
 
   const api = {
@@ -335,7 +338,7 @@ export function demoBackend() {
       { id: 'p3', code: 'PRD-DEMO-0003', brand_id: 1, online_name: '스틸 X프레임 5단 책장', retail_name: '퍼니츠 X 책장 5단', sku: 'FN-BS-5X', category: '책장', arrival_qty: 150, product_kind: '신제품', arrival_date: d(-2), specs: { body_color: '화이트', shelf_count: '5', reinforcement: 'X 와이어', wall_fix: '필요' }, options: [], spec_changes: [], created_by: 'u-log', created_at: ts(-14), updated_at: ts(-14) },
     ];
     const L = (product_id, o) => ({ product_id, followup: '미확인', shoot_needed: '미정', detail_needed: '미정', thumb_needed: '미정', launch_date: null, launch_state: '준비 전', note: null, updated_at: ts(-1), ...o });
-    const base = (o) => ({ cancelled: false, cancel_reason: null, assignee_id: null, expected_date: null, work_memo: null, result_url: null, completed_date: null, status: '요청', priority: '보통', updated_at: o.created_at, status_changed_at: o.created_at, ...o });
+    const base = (o) => ({ cancelled: false, cancel_reason: null, assignee_id: null, expected_date: null, work_memo: null, result_url: null, completed_date: null, status: '요청', priority: '보통', updated_at: o.created_at, status_changed_at: o.created_at, ...o, assignee_ids: o.assignee_ids || (o.assignee_id ? [o.assignee_id] : []) });
     return {
       __seq: { PRD: 3, PKG: 3, SHT: 1, DSN: 2 },
       profiles,
