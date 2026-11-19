@@ -474,3 +474,15 @@ img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,
 
 /* ---------- v1.9: 담당자 다중 선택 ---------- */
 .assignee-pick { margin-top: 2px; }
+
+/* ---------- v1.11: 06 개발요청 ---------- */
+.dev-intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.dev-intro h3 { font-size: 15px; margin: 0 0 4px; }
+.dev-intro p { margin: 0; max-width: 720px; line-height: 1.55; }
+.dev-type { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: #f0f0f2; color: var(--text-2); white-space: nowrap; }
+.dev-type.err { background: #ffe9e7; color: #c4291c; }
+.dev-type.mod { background: #fff1e0; color: #b25e00; }
+.dev-type.imp { background: #eef0ff; color: #4b4fc4; }
+.dev-type.new { background: #e3f6ea; color: #1a7f37; }
+.dev-table td.dev-title { white-space: normal; min-width: 240px; }
+.dev-admin .field { margin: 12px 0; }
