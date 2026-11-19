@@ -157,13 +157,27 @@ console.log(await sb.from('profiles').update({ role: 'admin' }).eq('id', user.id
 
 ---
 
+## 슬랙 DM 알림
+
+대시보드의 🔔 알림(신규 요청, 작업 상태 변경·완료, 담당자 배정, 멘션, 정보 수정 요청)이 받는 사람에게 슬랙 DM으로도 전송됩니다.
+
+구조: `notifications` 테이블 INSERT → DB 트리거(pg_net) → Edge Function `slack-notify` → 슬랙 `chat.postMessage`
+
+1. **슬랙 앱 만들기 (슬랙 워크스페이스 관리자)** — https://api.slack.com/apps → Create New App → From an app manifest → 워크스페이스 선택 → `supabase/functions/slack-notify/slack-app-manifest.json` 내용 붙여넣기 → Create → Install to Workspace
+2. **봇 토큰 저장** — 슬랙 앱 OAuth & Permissions 의 `Bot User OAuth Token`(xoxb-…)을 복사해 Supabase → Edge Functions → Secrets 에 `SLACK_BOT_TOKEN` 으로 저장 (채팅·코드에 붙여넣지 마세요)
+3. **Edge Function 배포** — `supabase/functions/slack-notify/index.ts` 를 Supabase → Edge Functions 에서 이름 `slack-notify` 로 배포, Settings 에서 *Verify JWT* 끄기 (함수는 알림 id 만 받고 내용은 DB에서 다시 읽으며, 같은 알림은 한 번만 보냅니다)
+4. **트리거** — `migration_2026-11-19_v1.4.sql` 실행 (새 프로젝트는 schema.sql 끝부분의 함수 URL 을 본인 프로젝트로 수정)
+
+- 사람 연결: 첫 알림 때 대시보드 가입 이메일로 슬랙 계정을 자동으로 찾습니다. 이메일이 다르면 관리자 화면 「슬랙 DM」 칸에 슬랙 멤버 ID(U…)를 입력하세요. 「받기」 체크를 해제하면 해당 사용자에게 DM을 보내지 않습니다.
+- 문제 확인: `select id, title, slack_sent_at, slack_error from notifications order by id desc limit 20;` 또는 Edge Functions → slack-notify → Logs
+
 ## 5. 운영 가이드
 
 - **카테고리 추가/사양 항목 변경:** `js/constants.js` 의 `CATEGORY_SPECS` 에 항목 추가 → 재배포. 사양은 JSON 으로 저장되므로 DB 변경이 필요 없습니다.
 - **브랜드, 디자인 작업 유형:** 관리자 화면에서 추가 (작업 유형은 브랜드팀도 요청서에서 추가 가능)
 - **댓글 멘션:** 협업 댓글에서 `@`를 입력하면 사람·팀 목록이 뜹니다. 멘션된 사람(또는 팀 전체)에게 🔔 알림이 DB 트리거로 생성됩니다.
 - **사용자 삭제:** 관리자 화면 「사용자 및 권한」 표의 「삭제」. 로그인 계정은 삭제되고, 작성한 요청·댓글·이력의 이름은 남습니다. 같은 이메일로 다시 가입할 수 있습니다.
-- **업데이트 마이그레이션:** 기존 프로젝트를 업데이트할 때는 `supabase/migration_*.sql` 을 날짜 순서대로 한 번씩 실행합니다 (2026-11-17 v1.0 → 2026-11-18 v1.1 → 2026-11-18 v1.2 → 2026-11-19 v1.3). 새 프로젝트는 `schema.sql` 만 실행하면 됩니다.
+- **업데이트 마이그레이션:** 기존 프로젝트를 업데이트할 때는 `supabase/migration_*.sql` 을 날짜 순서대로 한 번씩 실행합니다 (2026-11-17 v1.0 → 2026-11-18 v1.1 → 2026-11-18 v1.2 → 2026-11-19 v1.3 → 2026-11-19 v1.4). 새 프로젝트는 `schema.sql` 만 실행하면 됩니다.
 - **세부 사양 저장 형식:** 단일 옵션은 `specs = {항목: 값}`, 다중 옵션은 `specs = {option_mode: 'multi', variants: [{name, 항목: 값}]}`. 다중 패키지 규격은 한 줄에 하나씩 `[패키지명] 규격` 으로 저장됩니다.
 - **백업:** Supabase 유료 플랜은 매일 자동 백업이 제공됩니다. 무료 플랜이라면 주기적으로 `Database → Backups` 또는 `pg_dump` 로 백업하세요. 엑셀 다운로드로 업무 목록을 보관할 수도 있습니다.
 - **무료 플랜 유의:** 7일간 접속이 없으면 프로젝트가 일시 정지될 수 있습니다(대시보드에서 재개). 상시 운영이면 Pro 플랜을 권장합니다.
