@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191237';
-import { today, addDays } from './ui.js?v=202611191237';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191306';
+import { today, addDays } from './ui.js?v=202611191306';
 
 export const S = {
   db: null,
@@ -32,7 +32,7 @@ export async function loadTable(t) {
 }
 export async function loadAll() {
   await Promise.all(Object.keys(S.data).map((t) => loadTable(t)));
-  await ensureUrls(S.data.attachments.filter((a) => a.kind === 'product_image').map((a) => a.storage_path));
+  await ensureUrls(thumbPaths());
 }
 export async function ensureUrls(paths) {
   const need = [...new Set(paths)].filter((p) => p && !S.urls[p]);
@@ -58,6 +58,25 @@ export function productImages(pid) {
 export function productThumb(pid) {
   const a = productImages(pid)[0];
   return a ? S.urls[a.storage_path] : null;
+}
+const isImgAtt = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(a.file_name || '');
+// 촬영 요청 목록 썸네일: 요청서에 첨부·선택한 첫 이미지 (없으면 제품 대표 이미지)
+function shootImage(id) {
+  return S.data.attachments
+    .filter((a) => a.entity_type === 'shoot' && a.entity_id === id && isImgAtt(a))
+    .sort((a, b) => (a.created_at > b.created_at ? 1 : -1))[0];
+}
+export function requestThumb(r) {
+  if (r?._kind === 'shoot') {
+    const a = shootImage(r.id);
+    if (a && S.urls[a.storage_path]) return S.urls[a.storage_path];
+  }
+  return r?.product_id ? productThumb(r.product_id) : null;
+}
+// 목록 썸네일에 필요한 파일 경로 (제품 대표 이미지 + 촬영 요청 첫 이미지)
+export function thumbPaths() {
+  const shoots = S.data.shoot_requests.map((r) => shootImage(r.id)?.storage_path);
+  return [...S.data.attachments.filter((a) => a.kind === 'product_image').map((a) => a.storage_path), ...shoots].filter(Boolean);
 }
 export function attachmentsOf(entity, id) {
   return S.data.attachments.filter((a) => a.entity_type === entity && a.entity_id === id);

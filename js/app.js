@@ -1,10 +1,10 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611191237';
-import { S, loadAll, loadTable, ensureUrls, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191237';
-import { KINDS } from './constants.js?v=202611191237';
-import { ROLES } from './constants.js?v=202611191237';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191237';
-import { renderView, ROUTES } from './views.js?v=202611191237';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191237';
+import { supabaseBackend, demoBackend } from './db.js?v=202611191306';
+import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191306';
+import { KINDS } from './constants.js?v=202611191306';
+import { ROLES } from './constants.js?v=202611191306';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191306';
+import { renderView, ROUTES } from './views.js?v=202611191306';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191306';
 
 const cfg = window.APP_CONFIG || {};
 const params = new URLSearchParams(location.search);
@@ -159,8 +159,8 @@ async function flush() {
       S.me = S.data.profiles.find((p) => p.id === S.user.id);
       if (!S.me || S.me.role === 'pending' || !S.me.active) return renderPending();
     }
-    if (tables.includes('attachments')) {
-      await ensureUrls(S.data.attachments.filter((a) => a.kind === 'product_image').map((a) => a.storage_path));
+    if (tables.includes('attachments') || tables.includes('shoot_requests')) {
+      await ensureUrls(thumbPaths());
     }
   } catch (e) { console.warn(e); }
   rerender();

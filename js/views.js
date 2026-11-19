@@ -1,9 +1,9 @@
-import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191237';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191237';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191237';
-import { openDetail, openProduct } from './detail.js?v=202611191237';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191237';
+import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, profileName,
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191306';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191306';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191306';
+import { openDetail, openProduct } from './detail.js?v=202611191306';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191306';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -114,15 +114,14 @@ function followupBanner() {
     <div class="chips">${list.slice(0, 6).map((p) => `<button class="chip" data-product="${p.id}">${esc(pname(p))}</button>`).join('')}</div></div>`;
 }
 
-function thumb(pid, size = '') {
-  const url = pid ? productThumb(pid) : null;
+function thumb(pid, size = '', url = pid ? productThumb(pid) : null) {
   return url ? `<img class="thumb ${size}" src="${esc(url)}" alt="" loading="lazy">` : `<span class="thumb ${size} empty"></span>`;
 }
 
 function miniList(list, showDue) {
   if (!list.length) return '<p class="empty">해당 업무가 없습니다.</p>';
   return list.map((r) => `
-    <button class="mini-row" data-req="${r._kind}:${r.id}">${thumb(r.product_id)}
+    <button class="mini-row" data-req="${r._kind}:${r.id}">${thumb(r.product_id, '', requestThumb(r))}
       <span class="grow"><strong>${esc(requestTitle(r))}</strong><small>${KINDS[r._kind].short} · ${esc(requestType(r))}</small></span>
       ${showDue ? `<span class="due ${isOverdue(r) ? 'over' : ''}">${fmtDate(r.due_date)}</span>` : priorityTag(r.priority)}
       ${statusPill(r.status, r.cancelled)}
@@ -241,7 +240,7 @@ function requestTable(list, showKind) {
     </tr></thead>
     <tbody>${list.map((r) => `
       <tr data-req="${r._kind}:${r.id}" class="${r.cancelled ? 'is-cancel' : ''}">
-        <td>${thumb(r.product_id, 'sm')}</td>
+        <td>${thumb(r.product_id, 'sm', requestThumb(r))}</td>
         <td class="mono">${esc(r.code)}</td>
         ${showKind ? `<td>${KINDS[r._kind].short}</td>` : ''}
         <td>${esc(requestBrand(r))}</td>
