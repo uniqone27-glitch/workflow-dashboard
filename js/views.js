@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200852';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200852';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200852';
-import { openDetail, openProduct } from './detail.js?v=202611200852';
-import { devReqView } from './devreq.js?v=202611200852';
-import { PATCH_NOTES } from './patchnotes.js?v=202611200852';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200852';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200858';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200858';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200858';
+import { openDetail, openProduct } from './detail.js?v=202611200858';
+import { devReqView } from './devreq.js?v=202611200858';
+import { PATCH_NOTES } from './patchnotes.js?v=202611200858';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200858';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -276,13 +276,13 @@ function loadExcelJs() {
     document.head.appendChild(sc);
   }));
 }
-// 이미지 → PNG/JPEG (엑셀 호환 형식, 최대 480px로 축소)
+// 이미지 → JPEG (엑셀 호환 형식, 최대 600px로 축소)
 async function excelImage(url) {
   try {
     const blob = await (await fetch(url)).blob();
     const bmpUrl = URL.createObjectURL(blob);
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = bmpUrl; });
-    const k = Math.min(1, 480 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+    const k = Math.min(1, 600 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
     const w = Math.max(1, Math.round((img.naturalWidth || 480) * k)), h = Math.max(1, Math.round((img.naturalHeight || 480) * k));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
@@ -343,15 +343,16 @@ async function exportExcel(rows, label) {
       cell.border = { top: { style: 'thin', color: { argb: 'FFDDDDE2' } }, bottom: { style: 'thin', color: { argb: 'FFDDDDE2' } }, left: { style: 'thin', color: { argb: 'FFDDDDE2' } }, right: { style: 'thin', color: { argb: 'FFDDDDE2' } } };
     });
   });
-  // 이미지 셀 크기(px): 열 너비 21 ≈ 152px, 행 높이 150pt = 200px → 여백 두고 가운데 배치
-  const cellW = 152, cellH = 200, pad = 8;
+  // 이미지 셀 크기(px): 열 너비 21 ≈ 198px, 행 높이 150pt = 200px (Mac Excel 기준)
+  // 원본 비율 유지: 가로로 긴 이미지는 셀 가로에, 세로로 긴 이미지는 셀 세로에 꽉 차게 맞추고 가운데 배치
+  const cellW = 198, cellH = 200, pad = 1, EMU = 9525;
   imgs.forEach((im, i) => {
     if (!im) return;
     const k = Math.min((cellW - pad * 2) / im.w, (cellH - pad * 2) / im.h);
     const w = Math.round(im.w * k), h = Math.round(im.h * k);
     const id = wb.addImage({ base64: im.base64, extension: 'jpeg' });
     ws.addImage(id, {
-      tl: { col: (cellW - w) / 2 / cellW, row: i + 1 + (cellH - h) / 2 / cellH },
+      tl: { nativeCol: 0, nativeColOff: Math.round(((cellW - w) / 2) * EMU), nativeRow: i + 1, nativeRowOff: Math.round(((cellH - h) / 2) * EMU) },
       ext: { width: w, height: h }, editAs: 'oneCell',
     });
   });
