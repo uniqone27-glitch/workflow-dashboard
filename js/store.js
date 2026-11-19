@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191318';
-import { today, addDays } from './ui.js?v=202611191318';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191352';
+import { today, addDays } from './ui.js?v=202611191352';
 
 export const S = {
   db: null,
@@ -74,6 +74,15 @@ export function requestThumb(r) {
   }
   return r?.product_id ? productThumb(r.product_id) : null;
 }
+// 목록 썸네일 첨부파일 (클릭 시 확대용)
+export function requestThumbAtt(r) {
+  if (r?._kind === 'shoot') {
+    const a = shootImage(r.id);
+    if (a && S.urls[a.storage_path]) return a;
+  }
+  return r?.product_id ? productImages(r.product_id)[0] : null;
+}
+export const productThumbAtt = (pid) => (pid ? productImages(pid)[0] : null);
 // 목록 썸네일에 필요한 파일 경로 (제품 대표 이미지 + 촬영 요청 첫 이미지)
 export function thumbPaths() {
   const shoots = S.data.shoot_requests.map((r) => shootImage(r.id)?.storage_path);

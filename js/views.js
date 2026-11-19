@@ -1,9 +1,9 @@
-import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191318';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191318';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191318';
-import { openDetail, openProduct } from './detail.js?v=202611191318';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191318';
+import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191352';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191352';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191352';
+import { openDetail, openProduct } from './detail.js?v=202611191352';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191352';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -114,14 +114,17 @@ function followupBanner() {
     <div class="chips">${list.slice(0, 6).map((p) => `<button class="chip" data-product="${p.id}">${esc(pname(p))}</button>`).join('')}</div></div>`;
 }
 
-function thumb(pid, size = '', url = pid ? productThumb(pid) : null) {
-  return url ? `<img class="thumb ${size}" src="${esc(url)}" alt="" loading="lazy">` : `<span class="thumb ${size} empty"></span>`;
+// 목록 썸네일: 클릭하면 확대 보기 (행 클릭으로 상세가 열리지 않음)
+function thumb(pid, size = '', att = productThumbAtt(pid)) {
+  const url = att ? S.urls[att.storage_path] : null;
+  return url ? `<img class="thumb ${size} zoomable" src="${esc(url)}" alt="" loading="lazy" data-zoom data-path="${esc(att.storage_path)}" data-name="${esc(att.file_name)}" title="클릭하면 크게 볼 수 있습니다">`
+    : `<span class="thumb ${size} empty"></span>`;
 }
 
 function miniList(list, showDue) {
   if (!list.length) return '<p class="empty">해당 업무가 없습니다.</p>';
   return list.map((r) => `
-    <button class="mini-row" data-req="${r._kind}:${r.id}">${thumb(r.product_id, '', requestThumb(r))}
+    <button class="mini-row" data-req="${r._kind}:${r.id}">${thumb(r.product_id, '', requestThumbAtt(r))}
       <span class="grow"><strong>${esc(requestTitle(r))}</strong><small>${KINDS[r._kind].short} · ${esc(requestType(r))}</small></span>
       ${showDue ? `<span class="due ${isOverdue(r) ? 'over' : ''}">${fmtDate(r.due_date)}</span>` : priorityTag(r.priority)}
       ${statusPill(r.status, r.cancelled)}
@@ -240,7 +243,7 @@ function requestTable(list, showKind) {
     </tr></thead>
     <tbody>${list.map((r) => `
       <tr data-req="${r._kind}:${r.id}" class="${r.cancelled ? 'is-cancel' : ''}">
-        <td>${thumb(r.product_id, 'sm', requestThumb(r))}</td>
+        <td>${thumb(r.product_id, 'sm', requestThumbAtt(r))}</td>
         <td class="mono">${esc(r.code)}</td>
         ${showKind ? `<td>${KINDS[r._kind].short}</td>` : ''}
         <td>${esc(requestBrand(r))}</td>
