@@ -468,3 +468,6 @@ img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,
   .pn-area { grid-column: 2; }
   .pn-text { grid-column: 1 / -1; }
 }
+
+/* ---------- v1.8: 촬영 제품 이미지 ---------- */
+.ref-field + .field { margin-top: 2px; }
