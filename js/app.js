@@ -1,10 +1,10 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611191008';
-import { S, loadAll, loadTable, ensureUrls, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191008';
-import { KINDS } from './constants.js?v=202611191008';
-import { ROLES } from './constants.js?v=202611191008';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191008';
-import { renderView, ROUTES } from './views.js?v=202611191008';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191008';
+import { supabaseBackend, demoBackend } from './db.js?v=202611191017';
+import { S, loadAll, loadTable, ensureUrls, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191017';
+import { KINDS } from './constants.js?v=202611191017';
+import { ROLES } from './constants.js?v=202611191017';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191017';
+import { renderView, ROUTES } from './views.js?v=202611191017';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191017';
 
 const cfg = window.APP_CONFIG || {};
 const params = new URLSearchParams(location.search);
@@ -289,6 +289,13 @@ function route() {
   renderNav();
   renderView(r, $('#view'), true);
   $('#view').scrollTop = 0;
+  // 슬랙 알림의 「대시보드에서 보기」 링크: ?open=package:<id>
+  if (r.query.open) {
+    const [type, id] = r.query.open.split(':');
+    history.replaceState(null, '', `#/${r.name}`);
+    if (type === 'product') openProduct(id);
+    else if (KINDS[type]) openDetail(type, id);
+  }
 }
 
 // 이미지 확대: 같은 갤러리 안의 이미지끼리 좌우로 넘겨 볼 수 있음

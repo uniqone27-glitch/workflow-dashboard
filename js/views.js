@@ -1,9 +1,9 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191008';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191008';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191008';
-import { openDetail, openProduct } from './detail.js?v=202611191008';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191008';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, loadTable } from './store.js?v=202611191017';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191017';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191017';
+import { openDetail, openProduct } from './detail.js?v=202611191017';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191017';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -370,12 +370,16 @@ function adminView(route, el) {
       <div class="card"><div class="card-head"><h3>사용자 및 권한</h3>
         <span class="muted small">신규 가입자는 '승인 대기' 상태입니다. 소속 팀을 지정하면 바로 이용할 수 있습니다.</span></div>
         <div class="table-scroll"><table class="table">
-          <thead><tr><th>이름</th><th>이메일</th><th>권한</th><th>계정 상태</th><th>가입일</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>이메일</th><th>권한</th><th>계정 상태</th><th>슬랙 DM</th><th>가입일</th><th></th></tr></thead>
           <tbody>${users.map((u) => `<tr class="${u.role === 'pending' ? 'hl' : ''}">
             <td><strong>${esc(u.name)}</strong>${u.id === S.me.id ? ' <span class="tag">나</span>' : ''}</td>
             <td>${esc(u.email || '')}</td>
             <td><select class="input input-sm" data-role="${u.id}">${options(Object.entries(ROLES), u.role)}</select></td>
             <td><label class="check"><input type="checkbox" data-active="${u.id}" ${u.active ? 'checked' : ''}><span>${u.active ? '활성' : '비활성'}</span></label></td>
+            <td><div class="slack-cell">
+              <label class="check"><input type="checkbox" data-slack-on="${u.id}" ${u.slack_enabled !== false ? 'checked' : ''}><span>받기</span></label>
+              <input class="input input-sm" data-slack-id="${u.id}" value="${esc(u.slack_user_id || '')}" placeholder="자동 연결" title="비워 두면 첫 알림 때 가입 이메일로 슬랙 계정을 자동으로 찾습니다. 이메일이 다르면 슬랙 멤버 ID(U로 시작)를 입력하세요.">
+            </div></td>
             <td>${fmtDate(u.created_at)}</td>
             <td>${u.id === S.me.id ? '' : `<button class="btn-link danger small" data-del-user="${u.id}">삭제</button>`}</td></tr>`).join('')}</tbody></table></div>
       </div>
@@ -401,6 +405,13 @@ function adminView(route, el) {
     }));
     $$('[data-active]', el).forEach((c) => c.addEventListener('change', () =>
       act(() => S.db.update('profiles', { id: c.dataset.active }, { active: c.checked }).then(() => loadTable('profiles')), '계정 상태를 변경했습니다.')));
+    $$('[data-slack-on]', el).forEach((c) => c.addEventListener('change', () =>
+      act(() => S.db.update('profiles', { id: c.dataset.slackOn }, { slack_enabled: c.checked }).then(() => loadTable('profiles')), c.checked ? '슬랙 DM을 켰습니다.' : '슬랙 DM을 껐습니다.')));
+    $$('[data-slack-id]', el).forEach((i) => i.addEventListener('change', () => {
+      const v = i.value.trim();
+      if (v && !/^[UW][A-Z0-9]{6,}$/.test(v)) { toast('슬랙 멤버 ID는 U로 시작하는 영문 대문자·숫자입니다. (슬랙 프로필 > ⋮ > 멤버 ID 복사)', 'error'); return draw(); }
+      act(() => S.db.update('profiles', { id: i.dataset.slackId }, { slack_user_id: v || null }).then(() => loadTable('profiles')), '슬랙 연결 정보를 저장했습니다.');
+    }));
     $$('[data-del-user]', el).forEach((b) => b.addEventListener('click', async () => {
       const u = S.data.profiles.find((x) => x.id === b.dataset.delUser);
       if (!u) return;
