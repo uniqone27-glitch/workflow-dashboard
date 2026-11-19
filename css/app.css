@@ -443,3 +443,7 @@ img[data-zoom] { cursor: zoom-in; }
 /* ---------- v1.6: 촬영 요청 제품명 ---------- */
 .prod-names { margin-top: 10px; }
 .prod-names .input[readonly] { background: #f0f0f2; color: var(--text-2); }
+
+/* ---------- 목록 썸네일 확대 ---------- */
+img.thumb.zoomable { cursor: zoom-in; transition: transform .15s, box-shadow .15s; }
+img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
