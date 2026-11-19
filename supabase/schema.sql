@@ -177,6 +177,7 @@ create table public.package_requests (
   -- 디자인팀 처리 항목
   status            text not null default '요청' check (status in ('요청','작업중','완료')),
   assignee_id       uuid references public.profiles(id),
+  assignee_ids      uuid[] not null default '{}',   -- 담당자 여러 명 (assignee_id = 첫 번째)
   expected_date     date,
   work_memo         text,
   work_url          text,
@@ -216,6 +217,7 @@ create table public.shoot_requests (
   -- 디자인팀 처리 항목
   status             text not null default '요청' check (status in ('요청','작업중','완료')),
   assignee_id        uuid references public.profiles(id),
+  assignee_ids       uuid[] not null default '{}',
   scheduled_date     date,
   expected_date      date,
   work_memo          text,
@@ -252,6 +254,7 @@ create table public.design_requests (
   -- 디자인팀 처리 항목
   status            text not null default '요청' check (status in ('요청','작업중','완료')),
   assignee_id       uuid references public.profiles(id),
+  assignee_ids      uuid[] not null default '{}',   -- 담당자 여러 명 (assignee_id = 첫 번째)
   expected_date     date,
   work_memo         text,
   figma_url         text,
@@ -524,15 +527,31 @@ begin
               case when n->>'status' = '완료' then title || ' 완료' else title || ' 상태 변경: ' || (n->>'status') end,
               label, auth.uid());
     end if;
-    if diff ? 'assignee_id' and (n->>'assignee_id') is not null then
+    -- 담당자(여러 명): 새로 추가된 담당자에게만 알림
+    if diff ? 'assignee_ids' then
       insert into public.notifications (target_user, entity_type, entity_id, title, body, actor_id)
-      values ((n->>'assignee_id')::uuid, ent, rid, title || ' 담당자로 배정됨', label, auth.uid());
+      select x::uuid, ent, rid, title || ' 담당자로 배정됨', label, auth.uid()
+        from jsonb_array_elements_text(coalesce(n->'assignee_ids', '[]'::jsonb)) x
+       where not coalesce(o->'assignee_ids', '[]'::jsonb) ? x;
     end if;
     if diff ? 'cancelled' and (n->>'cancelled')::boolean then
       insert into public.notifications (target_role, entity_type, entity_id, title, body, actor_id)
       values ('design', ent, rid, title || ' 취소', label, auth.uid());
     end if;
   end if;
+  return new;
+end $$;
+
+-- 담당자 다중 배정: assignee_id = assignee_ids[1]
+create or replace function public.sync_assignees() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  new.assignee_ids := coalesce(new.assignee_ids, '{}');
+  -- 예전 방식(assignee_id만 변경)으로 저장된 경우 배열에 반영
+  if tg_op = 'UPDATE' and new.assignee_id is distinct from old.assignee_id and new.assignee_ids = coalesce(old.assignee_ids, '{}') then
+    new.assignee_ids := case when new.assignee_id is null then '{}'::uuid[] else array[new.assignee_id] end;
+  end if;
+  new.assignee_id := new.assignee_ids[1];  -- 대표 담당자
   return new;
 end $$;
 
@@ -613,7 +632,8 @@ create trigger t30_stamp  before update on public.launch_readiness for each row 
 create trigger t90_hist   after update on public.launch_readiness for each row execute function public.log_history('product', '', '');
 
 create trigger t10_guard  before insert or update on public.package_requests for each row
-  execute function public.guard_request('logistics', 'status,assignee_id,expected_date,work_memo,work_url,result_url,completed_date');
+  execute function public.guard_request('logistics', 'status,assignee_id,assignee_ids,expected_date,work_memo,work_url,result_url,completed_date');
+create trigger t15_assignees before insert or update on public.package_requests for each row execute function public.sync_assignees();
 create trigger t20_code   before insert on public.package_requests for each row execute function public.set_code('PKG', 'public.seq_package');
 create trigger t30_stamp  before insert or update on public.package_requests for each row execute function public.stamp_row();
 create trigger t40_status before insert or update on public.package_requests for each row execute function public.stamp_status();
@@ -621,7 +641,8 @@ create trigger t90_hist   after insert or update or delete on public.package_req
   execute function public.log_history('package', 'logistics', 'design,brand');
 
 create trigger t10_guard  before insert or update on public.shoot_requests for each row
-  execute function public.guard_request('brand', 'status,assignee_id,scheduled_date,expected_date,work_memo,result_url,completed_date');
+  execute function public.guard_request('brand', 'status,assignee_id,assignee_ids,scheduled_date,expected_date,work_memo,result_url,completed_date');
+create trigger t15_assignees before insert or update on public.shoot_requests for each row execute function public.sync_assignees();
 create trigger t20_code   before insert on public.shoot_requests for each row execute function public.set_code('SHT', 'public.seq_shoot');
 create trigger t30_stamp  before insert or update on public.shoot_requests for each row execute function public.stamp_row();
 create trigger t40_status before insert or update on public.shoot_requests for each row execute function public.stamp_status();
@@ -629,7 +650,8 @@ create trigger t90_hist   after insert or update or delete on public.shoot_reque
   execute function public.log_history('shoot', 'brand', 'design');
 
 create trigger t10_guard  before insert or update on public.design_requests for each row
-  execute function public.guard_request('brand', 'status,assignee_id,expected_date,work_memo,figma_url,result_url,completed_date');
+  execute function public.guard_request('brand', 'status,assignee_id,assignee_ids,expected_date,work_memo,figma_url,result_url,completed_date');
+create trigger t15_assignees before insert or update on public.design_requests for each row execute function public.sync_assignees();
 create trigger t20_code   before insert on public.design_requests for each row execute function public.set_code('DSN', 'public.seq_design');
 create trigger t30_stamp  before insert or update on public.design_requests for each row execute function public.stamp_row();
 create trigger t40_status before insert or update on public.design_requests for each row execute function public.stamp_status();
