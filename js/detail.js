@@ -1,13 +1,14 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191709';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191709';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191709';
-import { openRequestForm, openProductForm } from './forms.js?v=202611191709';
-import { launchSummary, progCell, histText } from './views.js?v=202611191709';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611191840';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611191840';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611191840';
+import { openRequestForm, openProductForm } from './forms.js?v=202611191840';
+import { launchSummary, progCell, histText } from './views.js?v=202611191840';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
-function openDrawer(render, { wide = false } = {}) {
+export const findPanel = (key) => panels.find((p) => p.key === key);
+export function openDrawer(render, { wide = false } = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'drawer-backdrop';
   wrap.innerHTML = `<aside class="drawer ${wide ? 'drawer-wide' : ''}"></aside>`;
@@ -93,9 +94,9 @@ export function specSummary(p) {
   return `${body}${opts.length ? `<div class="small"><b>옵션</b> ${opts.map(esc).join(' · ')}</div>` : ''}`;
 }
 
-const isImage = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg)$/i.test(a.file_name);
+export const isImage = (a) => /^image\//.test(a.mime_type || '') || /\.(png|jpe?g|gif|webp|svg)$/i.test(a.file_name);
 
-function attachmentBlock(entity, id, kinds, { title, uploadKind, empty = '첨부된 파일이 없습니다.' }) {
+export function attachmentBlock(entity, id, kinds, { title, uploadKind, empty = '첨부된 파일이 없습니다.' }) {
   const list = attachmentsOf(entity, id).filter((a) => kinds.includes(a.kind));
   const canUp = uploadKind && can.attach(entity, uploadKind);
   return `<div class="att-block" data-att="${entity}:${id}:${uploadKind || ''}">
@@ -110,7 +111,7 @@ function attachmentBlock(entity, id, kinds, { title, uploadKind, empty = '첨부
   </div>`;
 }
 
-function bindAttachments(el, rerender) {
+export function bindAttachments(el, rerender) {
   $$('.att-block', el).forEach((block) => {
     const [entity, id, kind] = block.dataset.att.split(':');
     $('[data-upload]', block)?.addEventListener('change', async (e) => {
@@ -232,7 +233,7 @@ function bindMentionInput(ta) {
   });
 }
 
-function commentsBlock(entity, id, { allowCorrection = false } = {}) {
+export function commentsBlock(entity, id, { allowCorrection = false } = {}) {
   const list = S.data.comments.filter((c) => c.entity_type === entity && c.entity_id === id).sort((a, b) => (a.created_at > b.created_at ? 1 : -1));
   return `<section class="section" data-comments="${entity}:${id}">
     <h3>협업 댓글 <span class="muted small">${list.length}</span></h3>
@@ -244,14 +245,14 @@ function commentsBlock(entity, id, { allowCorrection = false } = {}) {
         <p>${commentHtml(c)}</p>
       </div>`).join('') || '<p class="muted small">아직 댓글이 없습니다.</p>'}</div>
     <form class="comment-form">
-      <div class="mention-wrap"><textarea class="input" name="body" rows="2" placeholder="요청 부서·디자인팀에 남길 내용을 입력하세요. @를 입력하면 사람이나 팀을 멘션할 수 있습니다." required></textarea></div>
+      <div class="mention-wrap"><textarea class="input" name="body" rows="2" placeholder="${entity === 'dev' ? '추가 설명이나 질문을 남겨 주세요.' : '요청 부서·디자인팀에 남길 내용을 입력하세요.'} @를 입력하면 사람이나 팀을 멘션할 수 있습니다." required></textarea></div>
       <div class="row gap">
         ${allowCorrection ? '<label class="check"><input type="checkbox" name="correction"><span>제품 정보 수정 요청으로 등록 (물류/발주팀 알림)</span></label>' : ''}
         <div class="grow"></div><button class="btn btn-primary btn-sm">등록</button></div>
     </form>
   </section>`;
 }
-function bindComments(el, rerender) {
+export function bindComments(el, rerender) {
   $$('[data-comments]', el).forEach((sec) => {
     const [entity, id] = sec.dataset.comments.split(':');
     const form = $('form', sec);

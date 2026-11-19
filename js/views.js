@@ -1,10 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable } from './store.js?v=202611191709';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191709';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191709';
-import { openDetail, openProduct } from './detail.js?v=202611191709';
-import { PATCH_NOTES } from './patchnotes.js?v=202611191709';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191709';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable } from './store.js?v=202611191840';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611191840';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611191840';
+import { openDetail, openProduct } from './detail.js?v=202611191840';
+import { devReqView } from './devreq.js?v=202611191840';
+import { PATCH_NOTES } from './patchnotes.js?v=202611191840';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611191840';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -12,7 +13,8 @@ export const ROUTES = [
   { name: 'shoot', no: '03', label: '촬영 요청' },
   { name: 'design', no: '04', label: '디자인 작업 요청' },
   { name: 'products', no: '05', label: '제품 통합 관리' },
-  { name: 'patchnotes', no: '06', label: '패치노트' },
+  { name: 'devreq', no: '06', label: '개발요청' },
+  { name: 'patchnotes', no: '07', label: '패치노트' },
   { name: 'admin', no: '⚙', label: '사용자 · 설정', admin: true },
   { name: 'tasks', label: '전체 업무', title: '전체 업무 목록', hidden: true },
 ];
@@ -22,7 +24,7 @@ export function renderView(route, el, fresh = false) {
   if (!fresh && el.dataset.route === route.name && el._update) { el._update(); return; }
   el.dataset.route = route.name;
   el._update = null;
-  const fn = { dashboard: dashboardView, package: requestView, shoot: requestView, design: requestView, tasks: requestView, products: productsView, patchnotes: patchNotesView, admin: adminView }[route.name];
+  const fn = { dashboard: dashboardView, package: requestView, shoot: requestView, design: requestView, tasks: requestView, products: productsView, devreq: devReqView, patchnotes: patchNotesView, admin: adminView }[route.name];
   fn(route, el);
 }
 

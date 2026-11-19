@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191709';
-import { today, addDays } from './ui.js?v=202611191709';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611191840';
+import { today, addDays } from './ui.js?v=202611191840';
 
 export const S = {
   db: null,
@@ -9,6 +9,7 @@ export const S = {
   data: {
     profiles: [], brands: [], design_work_types: [], products: [], launch_readiness: [],
     package_requests: [], shoot_requests: [], design_requests: [],
+    dev_requests: [],
     attachments: [], comments: [], history: [], notifications: [], notification_reads: [], drafts: [],
   },
   urls: {},
@@ -149,6 +150,7 @@ export const can = {
   attach: (entity, kind) => {
     const r = role();
     if (r === 'admin') return true;
+    if (entity === 'dev') return kind === 'file';
     if (kind === 'result') return r === 'design';
     if (entity === 'product' || entity === 'package') return r === 'logistics';
     return r === 'brand';

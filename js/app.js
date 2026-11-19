@@ -1,10 +1,11 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611191709';
-import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611191709';
-import { KINDS } from './constants.js?v=202611191709';
-import { ROLES } from './constants.js?v=202611191709';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191709';
-import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611191709';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191709';
+import { supabaseBackend, demoBackend } from './db.js?v=202611191840';
+import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611191840';
+import { KINDS } from './constants.js?v=202611191840';
+import { ROLES } from './constants.js?v=202611191840';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191840';
+import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611191840';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191840';
+import { openDevRequest } from './devreq.js?v=202611191840';
 
 const cfg = window.APP_CONFIG || {};
 const params = new URLSearchParams(location.search);
@@ -217,6 +218,7 @@ function renderNav() {
     package: S.data.package_requests.filter((x) => !x.cancelled && x.status === '요청').length,
     shoot: S.data.shoot_requests.filter((x) => !x.cancelled && x.status === '요청').length,
     design: S.data.design_requests.filter((x) => !x.cancelled && x.status === '요청').length,
+    devreq: can.admin() ? (S.data.dev_requests || []).filter((x) => x.status === '접수').length : 0,
   };
   $('#nav').innerHTML = ROUTES.filter((x) => !x.hidden && (!x.admin || can.admin())).map((x) => `
     <a href="#/${x.name}" class="nav-item ${r === x.name ? 'active' : ''}">
@@ -272,6 +274,7 @@ function openNotifications() {
     if (b.dataset.id) markRead([Number(b.dataset.id)]);
     m.close();
     if (b.dataset.type === 'product') openProduct(b.dataset.eid);
+    else if (b.dataset.type === 'dev') openDevRequest(b.dataset.eid);
     else openDetail(b.dataset.type, b.dataset.eid);
   }));
 }
@@ -295,6 +298,7 @@ function route() {
     const [type, id] = r.query.open.split(':');
     history.replaceState(null, '', `#/${r.name}`);
     if (type === 'product') openProduct(id);
+    else if (type === 'dev') openDevRequest(id);
     else if (KINDS[type]) openDetail(type, id);
   }
 }

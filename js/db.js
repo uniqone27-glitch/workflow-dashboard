@@ -6,7 +6,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 export const TABLES = [
   'profiles', 'brands', 'design_work_types', 'products', 'launch_readiness',
-  'package_requests', 'shoot_requests', 'design_requests',
+  'package_requests', 'shoot_requests', 'design_requests', 'dev_requests',
   'attachments', 'comments', 'history', 'notifications', 'notification_reads', 'drafts',
 ];
 const BUCKET = 'files';
@@ -103,6 +103,7 @@ export function demoBackend() {
   let db;
   try { db = JSON.parse(localStorage.getItem(KEY)); } catch { db = null; }
   if (!db) db = seed();
+  db.dev_requests ||= [];
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* 용량 초과 무시 */ } };
   const emit = (table, eventType, row) => {
     listeners.forEach((l) => l(table, { eventType, new: row }));
@@ -115,7 +116,7 @@ export function demoBackend() {
   };
   bc && (bc.onmessage = (e) => syncFromOtherTab([e.data.table]));
   window.addEventListener('storage', (e) => {
-    if (e.key === KEY) syncFromOtherTab(['products', 'launch_readiness', 'package_requests', 'shoot_requests', 'design_requests', 'attachments', 'comments', 'history', 'notifications']);
+    if (e.key === KEY) syncFromOtherTab(['products', 'launch_readiness', 'package_requests', 'shoot_requests', 'design_requests', 'dev_requests', 'attachments', 'comments', 'history', 'notifications']);
   });
 
   let session = JSON.parse(sessionStorage.getItem('wf-demo-user') || 'null');
@@ -180,6 +181,12 @@ export function demoBackend() {
     } else if (changes.assignee_id && row.assignee_id) notify({ target_user: row.assignee_id, title: `${title} 담당자로 배정됨`, body });
   }
 
+  function devNotify(n, row) {
+    const x = { id: (db.notifications.at(-1)?.id || 0) + 1, entity_type: 'dev', entity_id: row.id, actor_id: uid(), created_at: now(), target_role: null, target_user: null, ...n };
+    db.notifications.push(x);
+    emit('notifications', 'INSERT', x);
+  }
+
   const api = {
     kind: 'demo',
     auth: {
@@ -228,10 +235,16 @@ export function demoBackend() {
           if (table === 'drafts' || table === 'notification_reads') row.user_id = uid();
         }
         if (table === 'brands') row.id = (db.brands.at(-1)?.id || 0) + 1;
+        if (table === 'dev_requests') {
+          row.code = codeOf('DEV'); row.requester_id = uid(); row.status_changed_at = now(); row.status_changed_by = uid();
+          if (r !== 'admin') { row.status = '접수'; row.answer = null; }
+          row.status ||= '접수'; row.priority ||= '보통';
+          devNotify({ target_role: 'admin', title: `신규 개발 요청 (${row.req_type})`, body: `${row.code} · ${row.title}` }, row);
+        }
         db[table].push(row);
         if (table === 'comments' && ((row.mentions || []).length || (row.mention_roles || []).length)) {
           const who = db.profiles.find((p) => p.id === uid())?.name || '';
-          const t = { package: db.package_requests, shoot: db.shoot_requests, design: db.design_requests }[row.entity_type];
+          const t = { package: db.package_requests, shoot: db.shoot_requests, design: db.design_requests, dev: db.dev_requests }[row.entity_type];
           const target = t?.find((x) => x.id === row.entity_id);
           const pr = row.entity_type === 'product' ? db.products.find((x) => x.id === row.entity_id) : null;
           const label = target?.code || pr?.retail_name || '';
@@ -265,8 +278,21 @@ export function demoBackend() {
           if (bad.length) throw new Error(`담당자와 진행 상태는 디자인팀만 변경할 수 있습니다. (수정 불가 항목: ${bad.join(', ')})`);
         } else throw new Error('이 업무를 수정할 권한이 없습니다.');
       }
+      if (table === 'dev_requests' && r !== 'admin') {
+        if (row.requester_id !== uid()) throw new Error('본인이 등록한 요청만 수정할 수 있습니다.');
+        if (('status' in patch && patch.status !== row.status) || ('answer' in patch && patch.answer !== row.answer)) throw new Error('진행 상태와 답변은 관리자만 변경할 수 있습니다.');
+        if (row.status !== '접수') throw new Error('관리자가 확인을 시작한 요청은 수정할 수 없습니다. 추가 내용은 댓글로 남겨 주세요.');
+      }
       const before = structuredClone(row);
       Object.assign(row, patch, { updated_at: now(), updated_by: uid() });
+      if (table === 'dev_requests') {
+        const label = `${row.code} · ${row.title}`;
+        if (before.status !== row.status) {
+          row.status_changed_at = now(); row.status_changed_by = uid();
+          devNotify({ target_user: row.requester_id, title: row.status === '완료' ? '개발 요청 완료' : `개발 요청 상태 변경: ${row.status}`, body: label }, row);
+        }
+        if (row.answer && row.answer !== before.answer) devNotify({ target_user: row.requester_id, title: '개발 요청에 관리자 답변이 등록되었습니다', body: `${label} · ${row.answer.slice(0, 80)}` }, row);
+      }
       if (REQ[table] && before.status !== row.status) {
         row.status_changed_at = now(); row.status_changed_by = uid();
         if (row.status === '완료' && !row.completed_date) row.completed_date = new Date().toISOString().slice(0, 10);
@@ -281,7 +307,8 @@ export function demoBackend() {
       const idx = db[table].findIndex((x) => Object.entries(match).every(([k, v]) => x[k] === v));
       if (idx < 0) throw new Error('대상을 찾을 수 없습니다.');
       const r = role();
-      if (!['drafts', 'comments', 'attachments'].includes(table) && r !== 'admin') throw new Error('삭제 권한이 없습니다. (관리자 전용)');
+      const own = table === 'dev_requests' && db[table][idx].requester_id === uid() && db[table][idx].status === '접수';
+      if (!['drafts', 'comments', 'attachments'].includes(table) && r !== 'admin' && !own) throw new Error('삭제 권한이 없습니다. (관리자 전용)');
       const [row] = db[table].splice(idx, 1);
       if (table === 'products') {
         ['package_requests', 'shoot_requests'].forEach((t) => { db[t] = db[t].filter((x) => x.product_id !== row.id); });
