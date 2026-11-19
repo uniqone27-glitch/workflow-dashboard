@@ -1,10 +1,10 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611191306';
-import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191306';
-import { KINDS } from './constants.js?v=202611191306';
-import { ROLES } from './constants.js?v=202611191306';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191306';
-import { renderView, ROUTES } from './views.js?v=202611191306';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191306';
+import { supabaseBackend, demoBackend } from './db.js?v=202611191309';
+import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle } from './store.js?v=202611191309';
+import { KINDS } from './constants.js?v=202611191309';
+import { ROLES } from './constants.js?v=202611191309';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611191309';
+import { renderView, ROUTES } from './views.js?v=202611191309';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611191309';
 
 const cfg = window.APP_CONFIG || {};
 const params = new URLSearchParams(location.search);
