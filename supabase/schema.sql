@@ -193,7 +193,9 @@ create index on public.package_requests (product_id);
 create table public.shoot_requests (
   id                 uuid primary key default gen_random_uuid(),
   code               text unique,
-  product_id         uuid not null references public.products(id) on delete cascade,
+  product_id         uuid references public.products(id) on delete cascade,   -- 직접 입력 시 null
+  product_retail_name text,
+  product_online_name text,
   purpose            text not null,
   purpose_etc        text,
   shoot_types        text[] not null default '{}',
@@ -504,6 +506,7 @@ begin
   if n ? 'product_id' and (n->>'product_id') is not null then
     select coalesce(retail_name, online_name) into ent_name from public.products where id = (n->>'product_id')::uuid;
   end if;
+  ent_name := coalesce(ent_name, n->>'product_retail_name', n->>'product_online_name');
   label := rcode || ' · ' || coalesce(n->>'title', ent_name, '');
   title := case ent when 'package' then '패키지 디자인 요청'
                     when 'shoot'   then '촬영 요청'
@@ -761,3 +764,35 @@ alter publication supabase_realtime add table
   public.products, public.launch_readiness,
   public.package_requests, public.shoot_requests, public.design_requests,
   public.attachments, public.comments, public.history, public.notifications;
+
+-- ---------------------------------------------------------------------
+-- 슬랙 DM 알림 (Edge Function 'slack-notify' 필요 — README 참고)
+--   아래 url 의 프로젝트 주소를 본인 프로젝트로 바꾸세요.
+-- ---------------------------------------------------------------------
+create extension if not exists pg_net with schema extensions;
+
+-- 사용자별 슬랙 연결 정보 (첫 알림 때 이메일로 자동 연결, 관리자가 직접 입력 가능)
+alter table public.profiles add column if not exists slack_user_id text;
+alter table public.profiles add column if not exists slack_enabled boolean not null default true;
+
+-- 전송 기록 (중복 전송 방지, 실패 원인 확인용)
+alter table public.notifications add column if not exists slack_sent_at timestamptz;
+alter table public.notifications add column if not exists slack_error text;
+
+create or replace function public.notify_slack() returns trigger
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform net.http_post(
+    url := 'https://umdicyuykwtttizppydx.supabase.co/functions/v1/slack-notify',
+    body := jsonb_build_object('id', new.id),
+    headers := '{"Content-Type": "application/json"}'::jsonb,
+    timeout_milliseconds := 5000
+  );
+  return new;
+exception when others then
+  return new;  -- 슬랙 전송 문제로 업무 처리가 실패하지 않도록
+end $$;
+
+drop trigger if exists t90_slack on public.notifications;
+create trigger t90_slack after insert on public.notifications
+  for each row execute function public.notify_slack();
