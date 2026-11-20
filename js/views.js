@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200906';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200906';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200906';
-import { openDetail, openProduct } from './detail.js?v=202611200906';
-import { devReqView } from './devreq.js?v=202611200906';
-import { PATCH_NOTES } from './patchnotes.js?v=202611200906';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200906';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200909';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200909';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200909';
+import { openDetail, openProduct } from './detail.js?v=202611200909';
+import { devReqView } from './devreq.js?v=202611200909';
+import { PATCH_NOTES } from './patchnotes.js?v=202611200909';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200909';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -276,7 +276,10 @@ function loadExcelJs() {
     document.head.appendChild(sc);
   }));
 }
-// 이미지 → JPEG (엑셀 호환 형식, 최대 600px로 축소)
+// 이미지 → 셀 모양(가로:세로 = XL_CELL_RATIO) 캔버스에 원본 비율 그대로 꽉 맞춰 넣은 PNG
+// (남는 부분은 투명 → 셀 테두리·배경이 그대로 보임). 엑셀에서는 이 PNG를 셀 네 모서리에 고정하므로
+// 열 너비·행 높이가 프로그램(Mac/Windows 엑셀, 넘버스 등)마다 다르게 그려져도 셀 밖으로 벗어나지 않습니다.
+const XL_CELL_RATIO = 169 / 200;   // 열 너비 21 : 행 높이 150 (Mac 엑셀 실측)
 async function excelImage(url) {
   try {
     const blob = await (await fetch(url)).blob();
@@ -284,14 +287,15 @@ async function excelImage(url) {
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = bmpUrl; });
     // 상세페이지처럼 극단적으로 길쭉한 이미지(3:1 초과)는 목록 썸네일처럼 셀 모양으로 잘라서 사용 (세로형은 위쪽, 가로형은 가운데)
     let sx = 0, sy = 0, sw = img.naturalWidth || 480, sh = img.naturalHeight || 480;
-    if (sh / sw > 3) sh = Math.round(sw * (200 / 198));
-    else if (sw / sh > 3) { const nw = Math.round(sh * (198 / 200)); sx = Math.round((sw - nw) / 2); sw = nw; }
-    const k = Math.min(1, 600 / Math.max(sw, sh));
-    const w = Math.max(1, Math.round(sw * k)), h = Math.max(1, Math.round(sh * k));
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
-    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+    if (sh / sw > 3) sh = Math.round(sw / XL_CELL_RATIO);
+    else if (sw / sh > 3) { const nw = Math.round(sh * XL_CELL_RATIO); sx = Math.round((sw - nw) / 2); sw = nw; }
+    const H = 400, W = Math.round(H * XL_CELL_RATIO), pad = 4;
+    const k = Math.min((W - pad * 2) / sw, (H - pad * 2) / sh);
+    const w = Math.round(sw * k), h = Math.round(sh * k);
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    c.getContext('2d').drawImage(img, sx, sy, sw, sh, Math.round((W - w) / 2), Math.round((H - h) / 2), w, h);
     URL.revokeObjectURL(bmpUrl);
-    return { base64: c.toDataURL('image/jpeg', 0.88), w, h };
+    return { base64: c.toDataURL('image/png') };
   } catch { return null; }
 }
 const xlWidth = (v) => [...String(v ?? '')].reduce((n, ch) => n + (/[\u1100-\uffff]/.test(ch) ? 2 : 1), 0);
@@ -347,17 +351,14 @@ async function exportExcel(rows, label) {
       cell.border = { top: { style: 'thin', color: { argb: 'FFDDDDE2' } }, bottom: { style: 'thin', color: { argb: 'FFDDDDE2' } }, left: { style: 'thin', color: { argb: 'FFDDDDE2' } }, right: { style: 'thin', color: { argb: 'FFDDDDE2' } } };
     });
   });
-  // 이미지 셀 크기(px): 열 너비 21 ≈ 198px, 행 높이 150pt = 200px (Mac Excel 기준)
-  // 원본 비율 유지: 가로로 긴 이미지는 셀 가로에, 세로로 긴 이미지는 셀 세로에 꽉 차게 맞추고 가운데 배치
-  const cellW = 198, cellH = 200, pad = 1, EMU = 9525;
+  // 셀 네 모서리에 고정(twoCell): 셀 크기에 딱 맞게 들어가고, 열·행 크기를 바꾸면 함께 맞춰짐
   imgs.forEach((im, i) => {
     if (!im) return;
-    const k = Math.min((cellW - pad * 2) / im.w, (cellH - pad * 2) / im.h);
-    const w = Math.round(im.w * k), h = Math.round(im.h * k);
-    const id = wb.addImage({ base64: im.base64, extension: 'jpeg' });
+    const id = wb.addImage({ base64: im.base64, extension: 'png' });
     ws.addImage(id, {
-      tl: { nativeCol: 0, nativeColOff: Math.round(((cellW - w) / 2) * EMU), nativeRow: i + 1, nativeRowOff: Math.round(((cellH - h) / 2) * EMU) },
-      ext: { width: w, height: h }, editAs: 'oneCell',
+      tl: { nativeCol: 0, nativeColOff: 0, nativeRow: i + 1, nativeRowOff: 0 },
+      br: { nativeCol: 1, nativeColOff: 0, nativeRow: i + 2, nativeRowOff: 0 },
+      editAs: 'twoCell',
     });
   });
   const buf = await wb.xlsx.writeBuffer();
