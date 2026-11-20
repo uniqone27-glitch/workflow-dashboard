@@ -235,7 +235,7 @@ export function specLabel(key) {
 // 이력 표시용 컬럼 한글명
 export const FIELD_LABELS = {
   status: '상태', assignee_id: '담당자', assignee_ids: '담당자', expected_date: '예상 완료일', work_memo: '작업 메모',
-  work_url: '초안 확인 피그마 URL', result_url: '결과물 URL', figma_url: 'Figma URL', completed_date: '실제 완료일',
+  retail_name_en: '유통 제품명(영문)', work_url: '초안 확인 피그마 URL', result_url: '결과물 URL', figma_url: 'Figma URL', completed_date: '실제 완료일',
   scheduled_date: '촬영 예정일', priority: '우선순위', due_date: '희망 완료일', cancelled: '취소',
   cancel_reason: '취소 사유', design_type: '디자인 유형', design_type_etc: '디자인 유형(기타)',
   package_spec: '패키지 규격(mm)', required_text: '필수 기재 문구', print_notes: '인쇄 유의사항',
@@ -244,7 +244,7 @@ export const FIELD_LABELS = {
   shoot_options: '촬영 옵션', quantity: '촬영 최소 수량', caution: '유의사항', desired_shoot_date: '촬영 희망일',
   work_type: '작업 유형', title: '작업명', channels: '사용 위치', channels_etc: '사용 위치(기타)',
   plan_url: '기획안 URL', brand_id: '브랜드', product_id: '제품', shoot_request_id: '연결 촬영',
-  online_name: '온라인 제품명', retail_name: '유통 제품명', sku: '제품 코드/SKU', category: '카테고리',
+  online_name: '온라인 제품명', retail_name: '유통 제품명(한글)', sku: '제품 코드/SKU', category: '카테고리',
   product_kind: '요청 구분', arrival_date: '입고 예정일', arrival_qty: '입고 예정 수량(옵션 총 수량 합계)', specs: '상세 사양', options: '옵션',
   spec_changes: '사양 변경사항', spec_notes: '추가 설명', followup: '후속 업무', shoot_needed: '촬영 필요',
   detail_needed: '상세페이지 필요', thumb_needed: '썸네일 필요', launch_date: '론칭 예정일',

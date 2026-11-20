@@ -1,8 +1,8 @@
-import { S, can, categoryList, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201501';
+import { S, can, categoryList, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201504';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201501';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201501';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201501';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201504';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201504';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201504';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -42,7 +42,8 @@ function productSection(p = {}, { withImages = true } = {}) {
     <fieldset><legend>기본 정보</legend><div class="form-grid prod-basic">
       <label class="field"><span>브랜드 <b class="req">*</b></span><select class="input" name="brand_id" required>${options(brands.map((b) => [String(b.id), b.name]), String(p.brand_id ?? ''), { empty: '선택' })}</select></label>
       <label class="field"><span>제품 카테고리 <b class="req">*</b></span><select class="input" name="category" required>${options(categoryList(p.category), p.category, { empty: '선택' })}</select></label>
-      <label class="field wide"><span>유통 제품명 <b class="req">*</b></span><input class="input" name="retail_name" required value="${esc(p.retail_name || '')}"></label>
+      <label class="field"><span>유통 제품명(한글) <b class="req">*</b></span><input class="input" name="retail_name" required value="${esc(p.retail_name || '')}" placeholder="예: 본스 1인 소파"></label>
+      <label class="field"><span>유통 제품명(영문)</span><input class="input" name="retail_name_en" value="${esc(p.retail_name_en || '')}" placeholder="예: BONS 1-Seater Sofa"></label>
       <label class="field wide"><span>요청 구분 <b class="req">*</b></span><select class="input" name="product_kind" required>${options(PRODUCT_KINDS, p.product_kind || '신제품')}</select></label>
       <label class="field"><span>입고 예정일</span><input class="input" type="date" name="arrival_date" value="${esc(p.arrival_date || '')}"></label>
       <label class="field"><span>입고 예정 수량(옵션 총 수량 합계)</span><input class="input" type="number" min="0" step="1" name="arrival_qty" value="${esc(p.arrival_qty ?? '')}" placeholder="예: 300"></label>
@@ -717,7 +718,7 @@ function requestColumns(kind) {
   }[kind];
 }
 function productColumns(p) {
-  const cols = ['brand_id', 'online_name', 'retail_name', 'category', 'product_kind', 'arrival_date', 'arrival_qty', 'specs', 'options', 'spec_changes', 'spec_notes'];
+  const cols = ['brand_id', 'online_name', 'retail_name', 'retail_name_en', 'category', 'product_kind', 'arrival_date', 'arrival_qty', 'specs', 'options', 'spec_changes', 'spec_notes'];
   return Object.fromEntries(cols.map((c) => [c, p[c] === '' || p[c] === undefined ? null : p[c]]).filter(([c, v]) => v !== null || !['specs', 'options', 'spec_changes'].includes(c)));
 }
 

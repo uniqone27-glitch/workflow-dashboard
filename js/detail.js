@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, shootRetailName, shootOnlineName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611201501';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611201501';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611201501';
-import { openRequestForm, openProductForm } from './forms.js?v=202611201501';
-import { launchSummary, progCell, histText } from './views.js?v=202611201501';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611201504';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611201504';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611201504';
+import { openRequestForm, openProductForm } from './forms.js?v=202611201504';
+import { launchSummary, progCell, histText } from './views.js?v=202611201504';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -551,7 +551,7 @@ function renderProduct(panel, pid) {
         <section class="section"><h3>기본 정보</h3>
           ${fields([
             ['브랜드', esc(brandName(p.brand_id))], ['카테고리', esc(p.category)],
-            ['유통 제품명', esc(p.retail_name || '-'), true], p.online_name ? ['온라인 제품명', esc(p.online_name), true] : null,
+            ['유통 제품명(한글)', esc(p.retail_name || '-'), true], ['유통 제품명(영문)', esc(p.retail_name_en || '-'), true], p.online_name ? ['온라인 제품명', esc(p.online_name), true] : null,
             ['요청 구분', esc(p.product_kind)], ['제품 관리번호', `<span class="mono">${esc(p.code)}</span>`],
             ['입고 예정일', fmtDate(p.arrival_date)], ['입고 예정 수량(옵션 총 수량 합계)', p.arrival_qty != null ? `${esc(p.arrival_qty)}개` : '-'],
             ['등록', `${esc(profileName(p.created_by))} · ${fmtDateTime(p.created_at)}`, true],
