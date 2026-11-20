@@ -1,8 +1,8 @@
 // 06 개발요청: 대시보드 수정·보완·신규 기능·오류 요청 (모든 구성원)
-import { S, can, profileName, attachmentsOf, loadTable, ensureUrls } from './store.js?v=202611201114';
-import { ROLES } from './constants.js?v=202611201114';
-import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce } from './ui.js?v=202611201114';
-import { openDrawer, findPanel, attachmentBlock, bindAttachments, commentsBlock, bindComments, uploadFiles, isImage } from './detail.js?v=202611201114';
+import { S, can, profileName, attachmentsOf, loadTable, ensureUrls } from './store.js?v=202611201120';
+import { ROLES } from './constants.js?v=202611201120';
+import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce } from './ui.js?v=202611201120';
+import { openDrawer, findPanel, attachmentBlock, bindAttachments, commentsBlock, bindComments, uploadFiles, isImage } from './detail.js?v=202611201120';
 
 export const DEV_TYPES = ['오류', '수정', '보완', '신규 기능'];
 export const DEV_AREAS = ['공통', '통합 대시보드', '패키지 디자인 요청', '촬영 요청', '디자인 작업 요청', '제품 통합 관리', '사용자 · 설정', '기타'];
@@ -89,7 +89,7 @@ export function openDevForm(edit = null) {
         ${edit ? '' : `<div class="field wide"><span>화면 캡처 · 참고 파일</span>
           <label class="dropzone"><input type="file" multiple data-dev-files><span>파일 선택 (여러 개 가능)</span></label><div class="file-list" data-dev-list></div></div>`}
       </div></div>
-      <div class="modal-foot"><span class="muted small">${edit ? '' : '등록하면 관리자에게 알림이 갑니다.'}</span><div class="grow"></div>
+      <div class="modal-foot"><span class="muted small">${edit ? '' : '등록하면 담당 관리자에게 알림이 갑니다.'}</span><div class="grow"></div>
         <button type="button" class="btn" data-close>취소</button><button class="btn btn-primary">${edit ? '저장' : '요청 등록'}</button></div>
     </form>`, { wide: true });
   const form = $('form', m.el);

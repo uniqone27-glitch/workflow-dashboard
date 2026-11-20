@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611201114';
-import { today, addDays } from './ui.js?v=202611201114';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611201120';
+import { today, addDays } from './ui.js?v=202611201120';
 
 export const S = {
   db: null,
