@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201432';
+import { S, can, categoryList, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201444';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201432';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201432';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201432';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201444';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201444';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201444';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -41,7 +41,7 @@ function productSection(p = {}, { withImages = true } = {}) {
   return `<div class="prod-fields">
     <fieldset><legend>기본 정보</legend><div class="form-grid prod-basic">
       <label class="field"><span>브랜드 <b class="req">*</b></span><select class="input" name="brand_id" required>${options(brands.map((b) => [String(b.id), b.name]), String(p.brand_id ?? ''), { empty: '선택' })}</select></label>
-      <label class="field"><span>제품 카테고리 <b class="req">*</b></span><select class="input" name="category" required>${options(CATEGORIES, p.category, { empty: '선택' })}</select></label>
+      <label class="field"><span>제품 카테고리 <b class="req">*</b></span><select class="input" name="category" required>${options(categoryList(p.category), p.category, { empty: '선택' })}</select></label>
       <label class="field wide"><span>유통 제품명 <b class="req">*</b></span><input class="input" name="retail_name" required value="${esc(p.retail_name || '')}"></label>
       <label class="field wide"><span>요청 구분 <b class="req">*</b></span><select class="input" name="product_kind" required>${options(PRODUCT_KINDS, p.product_kind || '신제품')}</select></label>
       <label class="field"><span>입고 예정일</span><input class="input" type="date" name="arrival_date" value="${esc(p.arrival_date || '')}"></label>
@@ -486,7 +486,7 @@ export function openRequestForm(kind, opts = {}) {
           ${state.manual ? `<label class="field"><span>브랜드 <b class="req">*</b></span>
             <select class="input" name="product_brand_id">${options(S.data.brands.filter((b) => b.active || String(b.id) === String(state.req.product_brand_id)).map((b) => [String(b.id), b.name]), state.req.product_brand_id != null ? String(state.req.product_brand_id) : '', { empty: '선택' })}</select></label>
           <label class="field"><span>카테고리 <b class="req">*</b></span>
-            <select class="input" name="product_category">${options(CATEGORIES, state.req.product_category || '', { empty: '선택' })}</select></label>` : ''}
+            <select class="input" name="product_category">${options(categoryList(state.req.product_category), state.req.product_category || '', { empty: '선택' })}</select></label>` : ''}
         </div>
         ${state.productId ? productInfo(state.productId, 'shoot')
           : state.manual ? '<p class="muted small">등록되지 않은 제품입니다. 유통 제품명·온라인 제품명, 브랜드와 카테고리를 직접 입력하세요.</p>'

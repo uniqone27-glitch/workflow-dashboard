@@ -1,11 +1,11 @@
-import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201432';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201432';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201432';
-import { openDetail, openProduct } from './detail.js?v=202611201432';
-import { devReqView } from './devreq.js?v=202611201432';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201432';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201432';
+import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201444';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201444';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201444';
+import { openDetail, openProduct } from './detail.js?v=202611201444';
+import { devReqView } from './devreq.js?v=202611201444';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201444';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201444';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -172,7 +172,7 @@ function requestView(route, el) {
     <div class="filters">
       ${!kind ? `<select class="input" data-f="kind">${options([['package', '패키지 디자인'], ['shoot', '촬영'], ['design', '디자인 작업'], ['brand', '브랜드팀 요청 전체']], f.kind, { empty: '업무 구분 전체' })}</select>` : ''}
       <select class="input" data-f="brand">${options(S.data.brands.map((b) => [b.name, b.name]), f.brand, { empty: '브랜드 전체' })}</select>
-      <select class="input" data-f="category">${options(CATEGORIES, f.category, { empty: '카테고리 전체' })}</select>
+      <select class="input" data-f="category">${options(categoryList(f.category), f.category, { empty: '카테고리 전체' })}</select>
       ${kind ? `<select class="input" data-f="type">${options(typeList, f.type, { empty: '요청 유형 전체' })}</select>` : ''}
       <select class="input" data-f="assignee">${options([['none', '미배정'], ...designers().map((d) => [d.id, d.name])], f.assignee, { empty: '담당자 전체' })}</select>
       <select class="input" data-f="requester">${options(requesters.map((p) => [p.id, p.name]), f.requester, { empty: '요청자 전체' })}</select>
@@ -416,7 +416,7 @@ function productsView(route, el) {
     <div class="toolbar">
       <input class="input search" id="pq" placeholder="유통 제품명, 온라인 제품명, 관리번호 검색" value="${esc(f.q || '')}">
       <select class="input" data-f="brand">${options(S.data.brands.map((b) => [String(b.id), b.name]), f.brand, { empty: '브랜드 전체' })}</select>
-      <select class="input" data-f="category">${options(CATEGORIES, f.category, { empty: '카테고리 전체' })}</select>
+      <select class="input" data-f="category">${options(categoryList(f.category), f.category, { empty: '카테고리 전체' })}</select>
       <select class="input" data-f="kind">${options(PRODUCT_KINDS, f.kind, { empty: '구분 전체' })}</select>
       <select class="input" data-f="launch">${options(LAUNCH_STATES, f.launch, { empty: '론칭 상태 전체' })}</select>
       <select class="input" data-f="followup">${options(['미확인', '후속 진행', '후속 불필요'], f.followup, { empty: '후속 업무 전체' })}</select>
@@ -514,6 +514,13 @@ function adminView(route, el) {
           <p class="muted small">제품·업무에 쓰인 브랜드는 삭제할 수 없습니다. 더 이상 쓰지 않으면 「사용」 체크를 해제하세요.</p>
           <form class="row gap" id="add-brand"><input class="input" name="name" placeholder="새 브랜드명" required><button class="btn">추가</button></form>
         </div>
+        <div class="card"><div class="card-head"><h3>카테고리</h3></div>
+          <div class="list-edit">${S.data.categories.map((c) => `<div class="li"><span>${esc(c.name)}</span>
+            <label class="check"><input type="checkbox" data-cat="${esc(c.name)}" ${c.active !== false ? 'checked' : ''}><span>사용</span></label>
+            <button class="btn-link danger" data-del-cat="${esc(c.name)}">삭제</button></div>`).join('')}</div>
+          <p class="muted small">제품·촬영 요청에 쓰인 카테고리는 삭제할 수 없습니다. 더 이상 쓰지 않으면 「사용」 체크를 해제하세요. 새로 추가한 카테고리는 공통 사양(사이즈·컬러·소재 등)만 입력합니다.</p>
+          <form class="row gap" id="add-cat"><input class="input" name="name" placeholder="새 카테고리명" required><button class="btn">추가</button></form>
+        </div>
         <div class="card"><div class="card-head"><h3>디자인 작업 유형</h3></div>
           <div class="list-edit">${S.data.design_work_types.map((w) => `<div class="li"><span>${esc(w.name)}</span>
             <button class="btn-link danger" data-wt="${esc(w.name)}">삭제</button></div>`).join('')}</div>
@@ -552,6 +559,22 @@ function adminView(route, el) {
       if (!(await confirmBox(`「${br.name}」 브랜드를 삭제할까요?`, { danger: true, ok: '삭제' }))) return;
       act(() => S.db.remove('brands', { id }).then(() => loadTable('brands')).then(draw), '브랜드를 삭제했습니다.');
     }));
+    $$('[data-cat]', el).forEach((c) => c.addEventListener('change', () =>
+      act(() => S.db.update('categories', { name: c.dataset.cat }, { active: c.checked }).then(() => loadTable('categories')), '저장했습니다.')));
+    $$('[data-del-cat]', el).forEach((b) => b.addEventListener('click', async () => {
+      const name = b.dataset.delCat;
+      const used = S.data.products.filter((p) => p.category === name).length + S.data.shoot_requests.filter((r) => r.product_category === name).length;
+      if (used) return toast(`「${name}」 카테고리는 제품·촬영 요청 ${used}건에서 사용 중이라 삭제할 수 없습니다. 「사용」 체크를 해제해 숨겨 주세요.`, 'error');
+      if (!(await confirmBox(`「${name}」 카테고리를 삭제할까요?`, { danger: true, ok: '삭제' }))) return;
+      act(() => S.db.remove('categories', { name }).then(() => loadTable('categories')).then(draw), '카테고리를 삭제했습니다.');
+    }));
+    $('#add-cat', el).addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = e.target.elements.namedItem('name').value.trim();
+      if (S.data.categories.some((c) => c.name === name)) return toast('이미 있는 카테고리입니다.', 'error');
+      const sort = Math.max(0, ...S.data.categories.map((c) => c.sort || 0)) + 1;
+      act(() => S.db.insert('categories', { name, sort, active: true }).then(() => loadTable('categories')).then(draw), '카테고리를 추가했습니다.');
+    });
     $$('[data-wt]', el).forEach((b) => b.addEventListener('click', () =>
       act(() => S.db.remove('design_work_types', { name: b.dataset.wt }).then(() => loadTable('design_work_types')).then(draw), '삭제했습니다.')));
     $('#add-brand', el).addEventListener('submit', (e) => {

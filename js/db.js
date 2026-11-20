@@ -2,10 +2,11 @@
 //  - supabase: 실제 운영용 (중앙 DB + 인증 + 파일 저장소 + 실시간)
 //  - demo: 화면 확인용 체험 모드 (index.html?demo=1). 이 브라우저에만 저장되므로 운영 용도로 쓰지 않습니다.
 
+import { CATEGORIES } from './constants.js?v=202611201444';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 
 export const TABLES = [
-  'profiles', 'brands', 'design_work_types', 'products', 'launch_readiness',
+  'profiles', 'brands', 'design_work_types', 'categories', 'products', 'launch_readiness',
   'package_requests', 'shoot_requests', 'design_requests', 'dev_requests',
   'attachments', 'comments', 'history', 'notifications', 'notification_reads', 'drafts',
 ];
@@ -104,6 +105,7 @@ export function demoBackend() {
   try { db = JSON.parse(localStorage.getItem(KEY)); } catch { db = null; }
   if (!db) db = seed();
   db.dev_requests ||= [];
+  db.categories ||= CATEGORIES.map((name, i) => ({ name, sort: i + 1, active: true }));
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* 용량 초과 무시 */ } };
   const emit = (table, eventType, row) => {
     listeners.forEach((l) => l(table, { eventType, new: row }));
@@ -141,6 +143,7 @@ export function demoBackend() {
   const WRITE = {
     products: ['admin', 'logistics'], launch_readiness: ['admin', 'brand'], brands: ['admin', 'logistics', 'brand'],
     design_work_types: ['admin', 'brand'],
+    categories: ['admin'],
   };
 
   function log(table, op, row, before) {
