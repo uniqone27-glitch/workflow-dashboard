@@ -1,11 +1,11 @@
 import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201504';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201504';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201504';
-import { openDetail, openProduct } from './detail.js?v=202611201504';
-import { devReqView } from './devreq.js?v=202611201504';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201504';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201504';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201514';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201514';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201514';
+import { openDetail, openProduct } from './detail.js?v=202611201514';
+import { devReqView } from './devreq.js?v=202611201514';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201514';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201514';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -240,13 +240,15 @@ function requestView(route, el) {
 }
 
 function requestTable(list, showKind, kind = null) {
-  // 03 촬영 요청: 「유통 제품명」 · 「온라인 제품명」 / 02 패키지 디자인 요청: 「유통 제품명」
+  // 02 패키지 · 03 촬영: 「유통 제품명(한글)」 · 「유통 제품명(영문)」 (촬영은 카테고리 포함)
   const shoot = kind === 'shoot';
+  const named = shoot || kind === 'package';
   const retail = (r) => shootRetailName(r) || requestTitle(r);
-  const online = (r) => shootOnlineName(r);
+  const retailEn = (r) => product(r.product_id)?.retail_name_en || '';
+  const dash = '<span class="muted">-</span>';
   return `<div class="table-scroll"><table class="table">
     <thead><tr>
-      <th>제품 이미지</th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th>${shoot ? '<th>유통 제품명</th><th>온라인 제품명</th><th>카테고리</th>' : kind === 'package' ? '<th>유통 제품명</th>' : '<th>제품명 / 작업명</th>'}<th>${shoot ? '촬영 유형' : '요청 유형'}</th>
+      <th>제품 이미지</th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th>${named ? `<th>유통 제품명(한글)</th><th>유통 제품명(영문)</th>${shoot ? '<th>카테고리</th>' : ''}` : '<th>제품명 / 작업명</th>'}<th>${shoot ? '촬영 유형' : '요청 유형'}</th>
       <th>요청 부서</th><th>요청자</th><th>담당자</th><th>우선순위</th><th>요청일</th><th>희망 완료일</th><th>상태</th>
     </tr></thead>
     <tbody>${list.map((r) => `
@@ -255,8 +257,7 @@ function requestTable(list, showKind, kind = null) {
         <td class="mono">${esc(r.code)}</td>
         ${showKind ? `<td>${KINDS[r._kind].short}</td>` : ''}
         <td>${esc(requestBrand(r))}</td>
-        ${shoot ? `<td class="title-cell"><strong>${esc(retail(r))}</strong></td><td class="title-cell">${online(r) ? esc(online(r)) : '<span class="muted">-</span>'}</td><td>${requestCategory(r) ? esc(requestCategory(r)) : '<span class="muted">-</span>'}</td>`
-          : kind === 'package' ? `<td class="title-cell"><strong>${esc(retail(r))}</strong></td>`
+        ${named ? `<td class="title-cell"><strong>${esc(retail(r))}</strong></td><td class="title-cell">${retailEn(r) ? esc(retailEn(r)) : dash}</td>${shoot ? `<td>${requestCategory(r) ? esc(requestCategory(r)) : dash}</td>` : ''}`
           : `<td class="title-cell"><strong>${esc(requestTitle(r))}</strong>${r._kind === 'design' && r.product_id ? `<small>${esc(pname(product(r.product_id)))}</small>` : ''}</td>`}
         <td>${esc(requestType(r))}</td>
         <td>${ROLES[KINDS[r._kind].requester]}</td>
@@ -438,7 +439,7 @@ function productsView(route, el) {
       return true;
     });
     $('#presults', el).innerHTML = list.length ? `<div class="table-scroll"><table class="table">
-      <thead><tr><th></th><th>관리번호</th><th>브랜드</th><th>제품명</th><th>카테고리</th><th>구분</th><th>입고 예정 (수량)</th>
+      <thead><tr><th></th><th>관리번호</th><th>브랜드</th><th>유통 제품명(한글)</th><th>카테고리</th><th>구분</th><th>입고 예정 (수량)</th>
         <th>패키지</th><th>촬영</th><th>상세페이지</th><th>썸네일</th><th>론칭 예정일</th><th>론칭 준비 상태</th></tr></thead>
       <tbody>${list.map((p) => {
         const s = launchSummary(p.id);
