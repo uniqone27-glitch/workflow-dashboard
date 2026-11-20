@@ -1,9 +1,9 @@
-import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611201425';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611201425';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611201425';
-import { openRequestForm, openProductForm } from './forms.js?v=202611201425';
-import { launchSummary, progCell, histText } from './views.js?v=202611201425';
+import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, shootRetailName, shootOnlineName, brandName, launchOf, designers,
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611201432';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611201432';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611201432';
+import { openRequestForm, openProductForm } from './forms.js?v=202611201432';
+import { launchSummary, progCell, histText } from './views.js?v=202611201432';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -347,8 +347,8 @@ function renderRequest(panel, kind, id) {
       ['디자인 레퍼런스 URL (카피 제품)', linkify(r.reference_url), true], ['추가 요청사항', nl(r.request_note), true],
     ],
     shoot: [
-      ['유통 제품명', esc(r.product_retail_name || p?.retail_name || '-')],
-      ['온라인 제품명', esc(r.product_online_name || p?.online_name || '-')],
+      ['유통 제품명', esc(shootRetailName(r) || '-')],
+      ['온라인 제품명', esc(shootOnlineName(r) || '-')],
       ['브랜드', esc(p ? brandName(p.brand_id) : r.product_brand_id ? brandName(r.product_brand_id) : '-')],
       ['카테고리', esc(p?.category || r.product_category || '-')],
       ['촬영 목적', esc(r.purpose) + (r.purpose_etc ? ` (${esc(r.purpose_etc)})` : '')],

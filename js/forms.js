@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201425';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201432';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201425';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201425';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201425';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201432';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201432';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201432';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -425,9 +425,10 @@ export function openRequestForm(kind, opts = {}) {
   if (kind === 'shoot') {
     state.manual = draftPayload.manual ?? (!!edit && !edit.product_id);
     state._wasLinked = !!state.productId;
-    if (state.productId && !state.req.product_retail_name) {
+    // 등록 제품: 유통 제품명은 항상 물류/발주팀의 최신 제품 정보로 (패키지 요청 등에서 수정된 이름 반영)
+    if (state.productId) {
       const p0 = product(state.productId);
-      state.req.product_retail_name = p0?.retail_name || '';
+      if (p0?.retail_name) state.req.product_retail_name = p0.retail_name;
       state.req.product_online_name ??= p0?.online_name || '';
     }
   }
