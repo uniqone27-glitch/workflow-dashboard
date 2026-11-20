@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200858';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200858';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200858';
-import { openDetail, openProduct } from './detail.js?v=202611200858';
-import { devReqView } from './devreq.js?v=202611200858';
-import { PATCH_NOTES } from './patchnotes.js?v=202611200858';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200858';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200901';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200901';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200901';
+import { openDetail, openProduct } from './detail.js?v=202611200901';
+import { devReqView } from './devreq.js?v=202611200901';
+import { PATCH_NOTES } from './patchnotes.js?v=202611200901';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200901';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -282,10 +282,14 @@ async function excelImage(url) {
     const blob = await (await fetch(url)).blob();
     const bmpUrl = URL.createObjectURL(blob);
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = bmpUrl; });
-    const k = Math.min(1, 600 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
-    const w = Math.max(1, Math.round((img.naturalWidth || 480) * k)), h = Math.max(1, Math.round((img.naturalHeight || 480) * k));
+    // 상세페이지처럼 극단적으로 길쭉한 이미지(3:1 초과)는 목록 썸네일처럼 셀 모양으로 잘라서 사용 (세로형은 위쪽, 가로형은 가운데)
+    let sx = 0, sy = 0, sw = img.naturalWidth || 480, sh = img.naturalHeight || 480;
+    if (sh / sw > 3) sh = Math.round(sw * (200 / 198));
+    else if (sw / sh > 3) { const nw = Math.round(sh * (198 / 200)); sx = Math.round((sw - nw) / 2); sw = nw; }
+    const k = Math.min(1, 600 / Math.max(sw, sh));
+    const w = Math.max(1, Math.round(sw * k)), h = Math.max(1, Math.round(sh * k));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
-    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
     URL.revokeObjectURL(bmpUrl);
     return { base64: c.toDataURL('image/jpeg', 0.88), w, h };
   } catch { return null; }
