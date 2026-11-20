@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611200909';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611200909';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611200909';
-import { openDetail, openProduct } from './detail.js?v=202611200909';
-import { devReqView } from './devreq.js?v=202611200909';
-import { PATCH_NOTES } from './patchnotes.js?v=202611200909';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611200909';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611201047';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201047';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201047';
+import { openDetail, openProduct } from './detail.js?v=202611201047';
+import { devReqView } from './devreq.js?v=202611201047';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201047';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201047';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
