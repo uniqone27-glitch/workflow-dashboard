@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611201047';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201047';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201047';
-import { openDetail, openProduct } from './detail.js?v=202611201047';
-import { devReqView } from './devreq.js?v=202611201047';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201047';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201047';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611201114';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201114';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201114';
+import { openDetail, openProduct } from './detail.js?v=202611201114';
+import { devReqView } from './devreq.js?v=202611201114';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201114';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201114';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -234,7 +234,7 @@ function requestView(route, el) {
   $('#reset', el).addEventListener('click', () => { S.filters[name] = {}; if (location.hash.includes('?')) location.hash = `#/${name}`; else requestView({ name, query: {} }, el); });
   $('#new', el)?.addEventListener('click', () => openRequestForm(kind));
   $('#drafts', el)?.addEventListener('click', () => openDraftList(kind));
-  $('#excel', el).addEventListener('click', () => exportExcel(el._rows || [], kind ? KINDS[kind].label : '전체 업무'));
+  $('#excel', el).addEventListener('click', () => exportExcel(el._rows || [], kind ? KINDS[kind].label : '전체 업무', kind));
   update();
   el._update = update;
 }
@@ -298,12 +298,18 @@ async function excelImage(url) {
     return { base64: c.toDataURL('image/png') };
   } catch { return null; }
 }
-const xlWidth = (v) => [...String(v ?? '')].reduce((n, ch) => n + (/[\u1100-\uffff]/.test(ch) ? 2 : 1), 0);
+// 글자 폭(한글 2, 그 외 1) — 여러 줄이면 가장 긴 줄 기준
+const xlWidth = (v) => Math.max(0, ...String(v ?? '').split('\n').map((l) => [...l].reduce((n, ch) => n + (/[\u1100-\uffff]/.test(ch) ? 2 : 1), 0)));
 
-async function exportExcel(rows, label) {
+async function exportExcel(rows, label, kind = null) {
   if (!rows.length) return toast('내보낼 업무가 없습니다.');
   const data = rows.map((r) => {
     const p = product(r.product_id);
+    // 03 촬영 요청 탭: 촬영에 필요한 항목만
+    if (kind === 'shoot') return {
+      유통제품명: p?.retail_name || r.product_retail_name || '', 온라인제품명: r.product_online_name || p?.online_name || '',
+      카테고리: p?.category || '', 요청유형: requestType(r), '촬영 유의사항': r.caution || '',
+    };
     return {
       요청번호: r.code, 구분: KINDS[r._kind].label, 브랜드: requestBrand(r), '제품명/작업명': requestTitle(r),
       유통제품명: p?.retail_name || r.product_retail_name || '', 온라인제품명: r.product_online_name || p?.online_name || '', 카테고리: p?.category || '', 입고예정일: p?.arrival_date || '', 입고예정수량: p?.arrival_qty ?? '',
@@ -336,7 +342,7 @@ async function exportExcel(rows, label) {
   const heads = ['제품 이미지', ...Object.keys(data[0])];
   ws.columns = heads.map((h, i) => ({
     header: h, key: h,
-    width: i === 0 ? 21 : Math.min(40, Math.max(10, xlWidth(h) + 2, ...data.map((d) => xlWidth(d[h]) + 2))),
+    width: i === 0 ? 21 : Math.min(h === '촬영 유의사항' ? 70 : 40, Math.max(10, xlWidth(h) + 2, ...data.map((d) => xlWidth(d[h]) + 2))),
   }));
   data.forEach((d) => ws.addRow({ ...d, '제품 이미지': '' }));
   const center = { vertical: 'middle', horizontal: 'center', wrapText: true };
