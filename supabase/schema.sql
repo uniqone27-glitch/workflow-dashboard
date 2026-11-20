@@ -889,11 +889,17 @@ end $$;
 create or replace function public.dev_notify() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
-  label text := new.code || ' · ' || new.title;
+  label   text := new.code || ' · ' || new.title;
+  dev_mgr uuid := 'e6e64965-2e6d-4fd9-9655-13a35e233b1b';   -- 정용환 (개발요청 담당 관리자)
 begin
   if tg_op = 'INSERT' then
-    insert into public.notifications (target_role, entity_type, entity_id, title, body, actor_id)
-    values ('admin', 'dev', new.id, '신규 개발 요청 (' || new.req_type || ')', label, auth.uid());
+    if exists (select 1 from public.profiles where id = dev_mgr and active and role = 'admin') then
+      insert into public.notifications (target_user, entity_type, entity_id, title, body, actor_id)
+      values (dev_mgr, 'dev', new.id, '신규 개발 요청 (' || new.req_type || ')', label, auth.uid());
+    else
+      insert into public.notifications (target_role, entity_type, entity_id, title, body, actor_id)
+      values ('admin', 'dev', new.id, '신규 개발 요청 (' || new.req_type || ')', label, auth.uid());
+    end if;
   else
     if new.status is distinct from old.status then
       insert into public.notifications (target_user, entity_type, entity_id, title, body, actor_id)
