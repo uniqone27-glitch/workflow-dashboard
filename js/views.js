@@ -1,11 +1,11 @@
 import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201458';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201458';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201458';
-import { openDetail, openProduct } from './detail.js?v=202611201458';
-import { devReqView } from './devreq.js?v=202611201458';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201458';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201458';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201501';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201501';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201501';
+import { openDetail, openProduct } from './detail.js?v=202611201501';
+import { devReqView } from './devreq.js?v=202611201501';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201501';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201501';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -173,7 +173,7 @@ function requestView(route, el) {
       ${!kind ? `<select class="input" data-f="kind">${options([['package', '패키지 디자인'], ['shoot', '촬영'], ['design', '디자인 작업'], ['brand', '브랜드팀 요청 전체']], f.kind, { empty: '업무 구분 전체' })}</select>` : ''}
       <select class="input" data-f="brand">${options(S.data.brands.map((b) => [b.name, b.name]), f.brand, { empty: '브랜드 전체' })}</select>
       <select class="input" data-f="category">${options(categoryList(f.category), f.category, { empty: '카테고리 전체' })}</select>
-      ${kind ? `<select class="input" data-f="type">${options(typeList, f.type, { empty: '요청 유형 전체' })}</select>` : ''}
+      ${kind ? `<select class="input" data-f="type">${options(typeList, f.type, { empty: kind === 'shoot' ? '촬영 유형 전체' : '요청 유형 전체' })}</select>` : ''}
       <select class="input" data-f="assignee">${options([['none', '미배정'], ...designers().map((d) => [d.id, d.name])], f.assignee, { empty: '담당자 전체' })}</select>
       <select class="input" data-f="requester">${options(requesters.map((p) => [p.id, p.name]), f.requester, { empty: '요청자 전체' })}</select>
       <select class="input" data-f="priority">${options(PRIORITIES, f.priority, { empty: '우선순위 전체' })}</select>
@@ -246,7 +246,7 @@ function requestTable(list, showKind, kind = null) {
   const online = (r) => shootOnlineName(r);
   return `<div class="table-scroll"><table class="table">
     <thead><tr>
-      <th>제품 이미지</th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th>${shoot ? '<th>유통 제품명</th><th>온라인 제품명</th><th>카테고리</th>' : kind === 'package' ? '<th>유통 제품명</th>' : '<th>제품명 / 작업명</th>'}<th>요청 유형</th>
+      <th>제품 이미지</th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th>${shoot ? '<th>유통 제품명</th><th>온라인 제품명</th><th>카테고리</th>' : kind === 'package' ? '<th>유통 제품명</th>' : '<th>제품명 / 작업명</th>'}<th>${shoot ? '촬영 유형' : '요청 유형'}</th>
       <th>요청 부서</th><th>요청자</th><th>담당자</th><th>우선순위</th><th>요청일</th><th>희망 완료일</th><th>상태</th>
     </tr></thead>
     <tbody>${list.map((r) => `
@@ -314,7 +314,7 @@ async function exportExcel(rows, label, kind = null) {
     // 03 촬영 요청 탭: 촬영에 필요한 항목만
     if (kind === 'shoot') return {
       유통제품명: shootRetailName(r), 온라인제품명: shootOnlineName(r),
-      카테고리: requestCategory(r), 요청유형: requestType(r), '촬영 유의사항': r.caution || '',
+      카테고리: requestCategory(r), 촬영유형: requestType(r), '촬영 유의사항': r.caution || '',
     };
     return {
       요청번호: r.code, 구분: KINDS[r._kind].label, 브랜드: requestBrand(r), '제품명/작업명': requestTitle(r),

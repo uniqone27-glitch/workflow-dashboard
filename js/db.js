@@ -2,7 +2,7 @@
 //  - supabase: 실제 운영용 (중앙 DB + 인증 + 파일 저장소 + 실시간)
 //  - demo: 화면 확인용 체험 모드 (index.html?demo=1). 이 브라우저에만 저장되므로 운영 용도로 쓰지 않습니다.
 
-import { CATEGORIES } from './constants.js?v=202611201458';
+import { CATEGORIES } from './constants.js?v=202611201501';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 
 export const TABLES = [
