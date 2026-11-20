@@ -1,11 +1,11 @@
 import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201444';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201444';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201444';
-import { openDetail, openProduct } from './detail.js?v=202611201444';
-import { devReqView } from './devreq.js?v=202611201444';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201444';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201444';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611201448';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201448';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201448';
+import { openDetail, openProduct } from './detail.js?v=202611201448';
+import { devReqView } from './devreq.js?v=202611201448';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201448';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201448';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
