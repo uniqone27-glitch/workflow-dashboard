@@ -1,11 +1,11 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611201307';
-import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611201307';
-import { KINDS } from './constants.js?v=202611201307';
-import { ROLES } from './constants.js?v=202611201307';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611201307';
-import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611201307';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611201307';
-import { openDevRequest } from './devreq.js?v=202611201307';
+import { supabaseBackend, demoBackend } from './db.js?v=202611201337';
+import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611201337';
+import { KINDS } from './constants.js?v=202611201337';
+import { ROLES } from './constants.js?v=202611201337';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611201337';
+import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611201337';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611201337';
+import { openDevRequest } from './devreq.js?v=202611201337';
 
 const cfg = window.APP_CONFIG || {};
 const params = new URLSearchParams(location.search);

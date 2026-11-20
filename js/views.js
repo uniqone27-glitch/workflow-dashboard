@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611201307';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201307';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201307';
-import { openDetail, openProduct } from './detail.js?v=202611201307';
-import { devReqView } from './devreq.js?v=202611201307';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201307';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201307';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory } from './store.js?v=202611201337';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201337';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201337';
+import { openDetail, openProduct } from './detail.js?v=202611201337';
+import { devReqView } from './devreq.js?v=202611201337';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201337';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201337';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -193,7 +193,7 @@ function requestView(route, el) {
       if (f.status && r.status !== f.status) return false;
       if (f.kind && !(f.kind === 'brand' ? r._kind !== 'package' : r._kind === f.kind)) return false;
       if (f.brand && requestBrand(r) !== f.brand) return false;
-      if (f.category && p?.category !== f.category) return false;
+      if (f.category && requestCategory(r) !== f.category) return false;
       if (f.type && !(r._kind === 'shoot' ? (r.shoot_types || []).includes(f.type) : requestType(r) === f.type || r.design_type === f.type)) return false;
       if (f.assignee && (f.assignee === 'none' ? assigneesOf(r).length : !isAssignee(r, f.assignee))) return false;
       if (f.requester && r.requester_id !== f.requester) return false;
@@ -314,11 +314,11 @@ async function exportExcel(rows, label, kind = null) {
     // 03 촬영 요청 탭: 촬영에 필요한 항목만
     if (kind === 'shoot') return {
       유통제품명: p?.retail_name || r.product_retail_name || '', 온라인제품명: r.product_online_name || p?.online_name || '',
-      카테고리: p?.category || '', 요청유형: requestType(r), '촬영 유의사항': r.caution || '',
+      카테고리: requestCategory(r), 요청유형: requestType(r), '촬영 유의사항': r.caution || '',
     };
     return {
       요청번호: r.code, 구분: KINDS[r._kind].label, 브랜드: requestBrand(r), '제품명/작업명': requestTitle(r),
-      유통제품명: p?.retail_name || r.product_retail_name || '', 온라인제품명: r.product_online_name || p?.online_name || '', 카테고리: p?.category || '', 입고예정일: p?.arrival_date || '', 입고예정수량: p?.arrival_qty ?? '',
+      유통제품명: p?.retail_name || r.product_retail_name || '', 온라인제품명: r.product_online_name || p?.online_name || '', 카테고리: requestCategory(r), 입고예정일: p?.arrival_date || '', 입고예정수량: p?.arrival_qty ?? '',
       요청유형: requestType(r), 요청부서: ROLES[KINDS[r._kind].requester], 요청자: profileName(r.requester_id),
       담당자: assigneeNames(r), 우선순위: r.priority, 상태: r.cancelled ? '취소' : r.status,
       요청일: (r.created_at || '').slice(0, 10), 희망완료일: r.due_date || '', 예상완료일: r.expected_date || '',

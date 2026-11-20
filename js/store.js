@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611201307';
-import { today, addDays } from './ui.js?v=202611201307';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611201337';
+import { today, addDays } from './ui.js?v=202611201337';
 
 export const S = {
   db: null,
@@ -55,6 +55,8 @@ export const launchOf = (pid) => S.data.launch_readiness.find((l) => l.product_i
 export const assigneesOf = (r) => (r?.assignee_ids?.length ? r.assignee_ids : r?.assignee_id ? [r.assignee_id] : []);
 export const isAssignee = (r, uid) => assigneesOf(r).includes(uid);
 export const assigneeNames = (r) => assigneesOf(r).map(profileName).join(', ');
+// 카테고리: 등록 제품이면 제품 정보, 촬영 요청 직접 입력이면 요청에 입력한 값
+export const requestCategory = (r) => product(r?.product_id)?.category || r?.product_category || '';
 export const designers = () => S.data.profiles.filter((p) => p.active && (p.role === 'design' || p.role === 'admin'));
 
 export function productImages(pid) {
