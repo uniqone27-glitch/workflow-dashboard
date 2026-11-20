@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611201120';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201120';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201120';
-import { openDetail, openProduct } from './detail.js?v=202611201120';
-import { devReqView } from './devreq.js?v=202611201120';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201120';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201120';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls } from './store.js?v=202611201303';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201303';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201303';
+import { openDetail, openProduct } from './detail.js?v=202611201303';
+import { devReqView } from './devreq.js?v=202611201303';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201303';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201303';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -222,7 +222,7 @@ function requestView(route, el) {
     $('#status-seg', el).innerHTML = [['', '전체'], ...STATUSES.map((s) => [s, s])].map(([v, l]) => `
       <button class="${f.status === v ? 'on' : ''}" data-status="${v}">${l} <em>${noStatus.filter((r) => !v || r.status === v).length}</em></button>`).join('');
     $$('[data-status]', el).forEach((b) => b.addEventListener('click', () => { f.status = b.dataset.status; update(); }));
-    $('#results', el).innerHTML = base.length ? requestTable(base, !kind) : '<p class="empty big">조건에 맞는 업무가 없습니다.</p>';
+    $('#results', el).innerHTML = base.length ? requestTable(base, !kind, kind) : '<p class="empty big">조건에 맞는 업무가 없습니다.</p>';
     $$('tr[data-req]', el).forEach((tr) => tr.addEventListener('click', () => { const [k, id] = tr.dataset.req.split(':'); openDetail(k, id); }));
     el._rows = base;
   };
@@ -239,10 +239,14 @@ function requestView(route, el) {
   el._update = update;
 }
 
-function requestTable(list, showKind) {
+function requestTable(list, showKind, kind = null) {
+  // 03 촬영 요청: 「유통 제품명」 · 「온라인 제품명」 칸으로 나눠 표시
+  const shoot = kind === 'shoot';
+  const retail = (r) => r.product_retail_name || product(r.product_id)?.retail_name || requestTitle(r);
+  const online = (r) => r.product_online_name || product(r.product_id)?.online_name || '';
   return `<div class="table-scroll"><table class="table">
     <thead><tr>
-      <th></th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th><th>제품명 / 작업명</th><th>요청 유형</th>
+      <th>제품 이미지</th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th>${shoot ? '<th>유통 제품명</th><th>온라인 제품명</th>' : '<th>제품명 / 작업명</th>'}<th>요청 유형</th>
       <th>요청 부서</th><th>요청자</th><th>담당자</th><th>우선순위</th><th>요청일</th><th>희망 완료일</th><th>상태</th>
     </tr></thead>
     <tbody>${list.map((r) => `
@@ -251,7 +255,8 @@ function requestTable(list, showKind) {
         <td class="mono">${esc(r.code)}</td>
         ${showKind ? `<td>${KINDS[r._kind].short}</td>` : ''}
         <td>${esc(requestBrand(r))}</td>
-        <td class="title-cell"><strong>${esc(requestTitle(r))}</strong>${r._kind === 'design' && r.product_id ? `<small>${esc(pname(product(r.product_id)))}</small>` : ''}</td>
+        ${shoot ? `<td class="title-cell"><strong>${esc(retail(r))}</strong></td><td class="title-cell">${online(r) ? esc(online(r)) : '<span class="muted">-</span>'}</td>`
+          : `<td class="title-cell"><strong>${esc(requestTitle(r))}</strong>${r._kind === 'design' && r.product_id ? `<small>${esc(pname(product(r.product_id)))}</small>` : ''}</td>`}
         <td>${esc(requestType(r))}</td>
         <td>${ROLES[KINDS[r._kind].requester]}</td>
         <td>${esc(profileName(r.requester_id))}</td>
