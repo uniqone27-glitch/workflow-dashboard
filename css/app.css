@@ -487,3 +487,8 @@ img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,
 .dev-table td.dev-title { white-space: normal; min-width: 240px; }
 .dev-admin .field { margin: 12px 0; }
 .dev-form .input[readonly] { background: #f0f0f2; color: var(--text-2); }
+
+/* ---------- v1.22: 브랜드·카테고리 「사용」 체크 가운데 정렬 ---------- */
+.list-edit .li:has(.check) { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.list-edit .li:has(.check) > .check { justify-self: center; }
+.list-edit .li:has(.check) > .btn-link { justify-self: end; }
