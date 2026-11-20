@@ -124,6 +124,7 @@ create table public.products (
   online_name   text,
   retail_name   text not null,
   sku           text,
+  retail_name_en text,   -- 유통 제품명(영문)
   category      text not null,
   product_kind  text not null default '신제품'
                 check (product_kind in ('신제품','리뉴얼','패키지 변경','기존 제품')),
