@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611200901';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611200901';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611200901';
-import { openRequestForm, openProductForm } from './forms.js?v=202611200901';
-import { launchSummary, progCell, histText } from './views.js?v=202611200901';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611200906';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611200906';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611200906';
+import { openRequestForm, openProductForm } from './forms.js?v=202611200906';
+import { launchSummary, progCell, histText } from './views.js?v=202611200906';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -366,8 +366,9 @@ function renderRequest(panel, kind, id) {
     ],
   }[kind];
 
-  // 패키지: 결과물은 공유폴더 경로(URL 아님)
-  const resultLabel = kind === 'package' ? '공유폴더 상세 경로' : kind === 'shoot' ? '촬영 결과물 URL' : '결과물 URL';
+  // 패키지·촬영: 결과물은 공유폴더 경로(URL 아님)
+  const resultLabel = kind === 'package' ? '공유폴더 상세 경로' : kind === 'shoot' ? '아카이빙 공유 폴더 경로' : '결과물 URL';
+  const pathResult = kind === 'package' || kind === 'shoot';
   const urlCol = kind === 'package' ? ['work_url', '초안 확인 피그마 URL'] : kind === 'design' ? ['figma_url', 'Figma 작업 URL'] : null;
   const linkedDesigns = kind === 'shoot' ? requests('design').filter((d) => d.shoot_request_id === id) : [];
 
@@ -408,12 +409,12 @@ function renderRequest(panel, kind, id) {
       <form class="work-form">
         <div class="status-pick">${STATUSES.map((s) => `<label><input type="radio" name="status" value="${s}" ${r.status === s ? 'checked' : ''}><span>${s}</span></label>`).join('')}</div>
         <div class="form-grid">
-          <div class="field wide"><span>담당 ${kind === 'shoot' ? '자' : '디자이너'} <small class="muted">여러 명 선택 가능 · 선택하지 않으면 미배정</small></span>${assigneePick(r)}</div>
+          <div class="field wide"><span>${kind === 'shoot' ? '담당자' : '담당 디자이너'} <small class="muted">여러 명 선택 가능 · 선택하지 않으면 미배정</small></span>${assigneePick(r)}</div>
           ${kind === 'shoot' ? `<label class="field"><span>촬영 예정일</span><input class="input" type="date" name="scheduled_date" value="${esc(r.scheduled_date || '')}"></label>` : ''}
           <label class="field"><span>예상 완료일</span><input class="input" type="date" name="expected_date" value="${esc(r.expected_date || '')}"></label>
           <label class="field"><span>실제 완료일</span><input class="input" type="date" name="completed_date" value="${esc(r.completed_date || '')}"><small class="muted">완료 처리 시 자동 입력</small></label>
           ${urlCol ? `<label class="field wide"><span>${urlCol[1]}</span><input class="input" name="${urlCol[0]}" value="${esc(r[urlCol[0]] || '')}" placeholder="https://"></label>` : ''}
-          <label class="field wide"><span>${resultLabel}</span><input class="input" name="result_url" value="${esc(r.result_url || '')}" ${kind === 'package' ? '' : 'placeholder="https://"'}></label>
+          <label class="field wide"><span>${resultLabel}</span><input class="input" name="result_url" value="${esc(r.result_url || '')}" ${pathResult ? '' : 'placeholder="https://"'}></label>
           <label class="field wide"><span>${kind === 'shoot' ? '촬영 진행 메모' : '작업 메모'}</span><textarea class="input" name="work_memo" rows="3">${esc(r.work_memo || '')}</textarea></label>
         </div>
         <div class="row"><span class="muted small">${r.status_changed_at ? `상태 변경: ${esc(profileName(r.status_changed_by))} · ${fmtDateTime(r.status_changed_at)}` : ''}</span><div class="grow"></div><button class="btn btn-primary">처리 내용 저장</button></div>
@@ -423,7 +424,7 @@ function renderRequest(panel, kind, id) {
         kind === 'shoot' ? ['촬영 예정일', fmtDate(r.scheduled_date)] : null,
         ['예상 완료일', fmtDate(r.expected_date)], ['실제 완료일', fmtDate(r.completed_date)],
         urlCol ? [urlCol[1], linkify(r[urlCol[0]]), true] : null,
-        [resultLabel, kind === 'package' && r.result_url && !/^https?:\/\//i.test(r.result_url) ? esc(r.result_url) : linkify(r.result_url), true],
+        [resultLabel, pathResult && r.result_url && !/^https?:\/\//i.test(r.result_url) ? esc(r.result_url) : linkify(r.result_url), true],
         ['작업 메모', nl(r.work_memo), true],
         ['상태 변경', r.status_changed_at ? `${esc(profileName(r.status_changed_by))} · ${fmtDateTime(r.status_changed_at)}` : '-', true],
       ])}
