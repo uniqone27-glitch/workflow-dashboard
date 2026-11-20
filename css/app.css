@@ -492,3 +492,23 @@ img.thumb.zoomable:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,
 .list-edit .li:has(.check) { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
 .list-edit .li:has(.check) > .check { justify-self: center; }
 .list-edit .li:has(.check) > .btn-link { justify-self: end; }
+
+/* ---------- v1.23: 검색 가능한 드롭다운 ---------- */
+select.ss-native { display: none !important; }
+.ss-trigger { appearance: none; display: inline-flex; align-items: center; text-align: left; cursor: pointer; padding-right: 30px;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236e6e73' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 11px center; }
+.ss-trigger .ss-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ss-trigger.ss-placeholder .ss-label { color: var(--text-2); }
+.ss-trigger.ss-open { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,113,227,.15); }
+.ss-trigger:disabled { background-color: #f5f5f7; color: var(--text-3); cursor: not-allowed; }
+.toolbar .ss-trigger { width: auto; min-width: 110px; max-width: 240px; }
+.ss-panel { position: fixed; z-index: 1000; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); overflow: hidden; }
+.ss-search { border: 0; border-bottom: 1px solid var(--line); padding: 9px 12px; font: 14px var(--font); outline: none; background: var(--surface-2); color: var(--text); }
+.ss-list { overflow-y: auto; padding: 4px; min-height: 0; flex: 1; }
+.ss-opt { padding: 7px 10px; border-radius: 7px; font-size: 14px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ss-opt.ss-active { background: var(--accent-soft); }
+.ss-opt.ss-selected { color: var(--accent); font-weight: 600; }
+.ss-opt.ss-disabled { color: var(--text-3); cursor: default; }
+.ss-group { padding: 8px 10px 3px; font-size: 11px; font-weight: 600; color: var(--text-3); }
+.ss-empty { padding: 12px 10px; font-size: 13px; color: var(--text-3); text-align: center; }
