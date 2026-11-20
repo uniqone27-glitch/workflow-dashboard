@@ -197,6 +197,7 @@ create table public.shoot_requests (
   product_id         uuid references public.products(id) on delete cascade,   -- 직접 입력 시 null
   product_retail_name text,
   product_online_name text,
+  product_brand_id   bigint references public.brands(id) on delete set null,   -- 직접 입력 시 브랜드
   product_category   text,   -- 직접 입력 시 카테고리
   purpose            text not null,
   purpose_etc        text,
