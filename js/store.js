@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK } from './constants.js?v=202611201418';
-import { today, addDays } from './ui.js?v=202611201418';
+import { KINDS, PRIORITY_RANK } from './constants.js?v=202611201425';
+import { today, addDays } from './ui.js?v=202611201425';
 
 export const S = {
   db: null,
@@ -122,7 +122,9 @@ export function requestType(r) {
 }
 export function requestBrand(r) {
   if (r._kind === 'design' && r.brand_id) return brandName(r.brand_id);
-  return brandName(product(r.product_id)?.brand_id);
+  const p = product(r.product_id);
+  if (p) return brandName(p.brand_id);
+  return r.product_brand_id ? brandName(r.product_brand_id) : '-';   // 촬영 요청 직접 입력
 }
 export function isOpen(r) { return !r.cancelled && r.status !== '완료'; }
 export function isOverdue(r) { return isOpen(r) && r.due_date && r.due_date < today(); }

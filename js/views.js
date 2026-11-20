@@ -1,11 +1,11 @@
 import { S, can, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory } from './store.js?v=202611201418';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201418';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201418';
-import { openDetail, openProduct } from './detail.js?v=202611201418';
-import { devReqView } from './devreq.js?v=202611201418';
-import { PATCH_NOTES } from './patchnotes.js?v=202611201418';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201418';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory } from './store.js?v=202611201425';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611201425';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611201425';
+import { openDetail, openProduct } from './detail.js?v=202611201425';
+import { devReqView } from './devreq.js?v=202611201425';
+import { PATCH_NOTES } from './patchnotes.js?v=202611201425';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611201425';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -547,7 +547,7 @@ function adminView(route, el) {
     $$('[data-del-brand]', el).forEach((b) => b.addEventListener('click', async () => {
       const id = Number(b.dataset.delBrand);
       const br = S.data.brands.find((x) => x.id === id);
-      const used = S.data.products.filter((p) => p.brand_id === id).length + S.data.design_requests.filter((r) => r.brand_id === id).length;
+      const used = S.data.products.filter((p) => p.brand_id === id).length + S.data.design_requests.filter((r) => r.brand_id === id).length + S.data.shoot_requests.filter((r) => String(r.product_brand_id) === String(id)).length;
       if (used) return toast(`「${br.name}」 브랜드는 제품·업무 ${used}건에서 사용 중이라 삭제할 수 없습니다. 「사용」 체크를 해제해 숨겨 주세요.`, 'error');
       if (!(await confirmBox(`「${br.name}」 브랜드를 삭제할까요?`, { danger: true, ok: '삭제' }))) return;
       act(() => S.db.remove('brands', { id }).then(() => loadTable('brands')).then(draw), '브랜드를 삭제했습니다.');

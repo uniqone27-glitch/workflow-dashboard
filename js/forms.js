@@ -1,8 +1,8 @@
-import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201418';
+import { S, can, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201425';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201418';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201418';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201418';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201425';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201425';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201425';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -482,11 +482,13 @@ export function openRequestForm(kind, opts = {}) {
               placeholder="${chosen ? '유통 제품명' : '제품을 선택하거나 「직접 입력」을 고르세요'}"></label>
           <label class="field"><span>온라인 제품명</span>
             <input class="input" name="product_online_name" value="${esc(state.req.product_online_name || '')}" ${chosen ? '' : 'disabled'} placeholder="온라인 제품명"></label>
-          ${state.manual ? `<label class="field"><span>카테고리 <b class="req">*</b></span>
+          ${state.manual ? `<label class="field"><span>브랜드 <b class="req">*</b></span>
+            <select class="input" name="product_brand_id">${options(S.data.brands.filter((b) => b.active || String(b.id) === String(state.req.product_brand_id)).map((b) => [String(b.id), b.name]), state.req.product_brand_id != null ? String(state.req.product_brand_id) : '', { empty: '선택' })}</select></label>
+          <label class="field"><span>카테고리 <b class="req">*</b></span>
             <select class="input" name="product_category">${options(CATEGORIES, state.req.product_category || '', { empty: '선택' })}</select></label>` : ''}
         </div>
         ${state.productId ? productInfo(state.productId, 'shoot')
-          : state.manual ? '<p class="muted small">등록되지 않은 제품입니다. 유통 제품명·온라인 제품명과 카테고리를 직접 입력하세요.</p>'
+          : state.manual ? '<p class="muted small">등록되지 않은 제품입니다. 유통 제품명·온라인 제품명, 브랜드와 카테고리를 직접 입력하세요.</p>'
           : '<p class="muted small">물류/발주팀이 등록한 제품을 선택하면 사양과 유통 제품명이 자동으로 표시됩니다. 목록에 없으면 「직접 입력」을 고르세요.</p>'}</fieldset>`;
     } else {
       const brands = S.data.brands.filter((b) => b.active || String(b.id) === String(state.req.brand_id));
@@ -508,7 +510,8 @@ export function openRequestForm(kind, opts = {}) {
         if (state.productId) {
           const p1 = product(state.productId);
           state.req.product_retail_name = p1?.retail_name || '';
-          state.req.product_category = null;   // 등록 제품은 제품 정보의 카테고리 사용
+          state.req.product_category = null;   // 등록 제품은 제품 정보의 카테고리·브랜드 사용
+          state.req.product_brand_id = null;
           state.req.product_online_name = p1?.online_name || '';
         } else if (state.manual && state._wasLinked) {
           state.req.product_retail_name = '';
@@ -603,6 +606,7 @@ export function openRequestForm(kind, opts = {}) {
     if (kind === 'shoot') {
       if (!state.productId && !state.manual) missing.push('제품');
       else if (!state.req.product_retail_name) missing.push('유통 제품명');
+      if (state.manual && !state.req.product_brand_id) missing.push('브랜드');
       if (state.manual && !state.req.product_category) missing.push('카테고리');
     } else if (kind !== 'design' && !state.productId && state.productMode !== 'new') missing.push('제품');
     if (create && kind === 'package' && !(req.design_types || []).length) missing.push('요청 디자인 유형');
@@ -617,6 +621,7 @@ export function openRequestForm(kind, opts = {}) {
       const cols = requestColumns(kind);
       const clean = (o) => Object.fromEntries(cols.filter((c) => c in o).map((c) => [c, o[c] === '' ? null : o[c]]));
       if (req.quantity !== undefined && req.quantity !== null) req.quantity = Number(req.quantity);
+      if (req.product_brand_id != null && req.product_brand_id !== '') req.product_brand_id = Number(req.product_brand_id);
 
       if (edit) {
         const patch = clean(req);
@@ -706,7 +711,7 @@ function requestColumns(kind) {
   const common = ['product_id', 'priority', 'due_date', 'reference_url', 'request_note'];
   return {
     package: [...common, 'design_type', 'design_type_etc', 'package_spec', 'required_text', 'print_notes'],
-    shoot: [...common, 'product_retail_name', 'product_online_name', 'product_category', 'purpose', 'purpose_etc', 'shoot_types', 'shoot_types_etc', 'location', 'location_etc', 'shoot_options', 'quantity', 'caution', 'desired_shoot_date'],
+    shoot: [...common, 'product_retail_name', 'product_online_name', 'product_brand_id', 'product_category', 'purpose', 'purpose_etc', 'shoot_types', 'shoot_types_etc', 'location', 'location_etc', 'shoot_options', 'quantity', 'caution', 'desired_shoot_date'],
     design: [...common, 'brand_id', 'shoot_request_id', 'work_type', 'title', 'purpose', 'channels', 'channels_etc', 'plan_url', 'caution'],
   }[kind];
 }
