@@ -235,7 +235,7 @@ export function specLabel(key) {
 // 이력 표시용 컬럼 한글명
 export const FIELD_LABELS = {
   status: '상태', assignee_id: '담당자', assignee_ids: '담당자', expected_date: '예상 완료일', work_memo: '작업 메모',
-  retail_name_en: '유통 제품명(영문)', work_url: '초안 확인 피그마 URL', result_url: '결과물 URL', figma_url: 'Figma URL', completed_date: '실제 완료일',
+  retail_name_en: '유통 제품명(영문)', shoot_colors: '촬영 컬러', work_url: '초안 확인 피그마 URL', result_url: '결과물 URL', figma_url: 'Figma URL', completed_date: '실제 완료일',
   scheduled_date: '촬영 예정일', priority: '우선순위', due_date: '희망 완료일', cancelled: '취소',
   cancel_reason: '취소 사유', design_type: '디자인 유형', design_type_etc: '디자인 유형(기타)',
   package_spec: '패키지 규격(mm)', required_text: '필수 기재 문구', print_notes: '인쇄 유의사항',

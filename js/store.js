@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK, CATEGORIES } from './constants.js?v=202611201514';
-import { today, addDays } from './ui.js?v=202611201514';
+import { KINDS, PRIORITY_RANK, CATEGORIES } from './constants.js?v=202611231014';
+import { today, addDays } from './ui.js?v=202611231014';
 
 export const S = {
   db: null,
@@ -67,6 +67,17 @@ export function categoryList(current) {
   const list = rows.length ? rows.filter((c) => c.active !== false).map((c) => c.name) : [...CATEGORIES];
   if (current && !list.includes(current)) list.push(current);
   return list;
+}
+// 제품 컬러 목록: 세부 사양의 「컬러」(다중 옵션이면 옵션별 컬러)를 쉼표·슬래시 기준으로 나눠 하나씩
+const COLOR_KEYS = ['color', 'fabric_color', 'seat_color', 'top_color', 'frame_color'];
+export function productColors(p) {
+  const sp = p?.specs || {};
+  const pick = (o) => {
+    const k = COLOR_KEYS.find((key) => String(o?.[key] || '').trim());
+    return k ? String(o[k]) : '';
+  };
+  const raw = sp.option_mode === 'multi' && (sp.variants || []).length ? sp.variants.map(pick) : [pick(sp)];
+  return [...new Set(raw.flatMap((v) => v.split(/[,，/·]+/)).map((v) => v.trim()).filter(Boolean))];
 }
 export const designers = () => S.data.profiles.filter((p) => p.active && (p.role === 'design' || p.role === 'admin'));
 

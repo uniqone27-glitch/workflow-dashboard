@@ -1,8 +1,8 @@
-import { S, can, categoryList, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611201514';
+import { S, can, categoryList, productColors, product, pname, launchOf, requests, requestType, brandName, loadTable, productImages, ensureUrls, attachmentsOf } from './store.js?v=202611231014';
 import { KINDS, PRIORITIES, CATEGORIES, PRODUCT_KINDS, CATEGORY_SPECS, PACKAGE_TYPES, SHOOT_PURPOSES,
-  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611201514';
-import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611201514';
-import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611201514';
+  SHOOT_TYPES, SHOOT_LOCATIONS, CHANNELS, optionNames } from './constants.js?v=202611231014';
+import { $, $$, esc, openModal, toast, errMsg, readForm, options, checks, statusPill, fmtDate, timeAgo, confirmBox } from './ui.js?v=202611231014';
+import { openDetail, openProduct, uploadFiles, productGallery, specSummary } from './detail.js?v=202611231014';
 
 // ---------------------------------------------------------------- 제품 입력 섹션
 // same: 다중 옵션의 2번째 옵션부터 — '전 옵션 동일'로 지정된 항목 키 집합 (null 이면 선택 없음)
@@ -432,6 +432,9 @@ export function openRequestForm(kind, opts = {}) {
       if (p0?.retail_name) state.req.product_retail_name = p0.retail_name;
       state.req.product_online_name ??= p0?.online_name || '';
     }
+    // 촬영 컬러: 저장된 값이 없으면 등록 제품의 컬러를 자동 입력, 직접 입력은 빈 칸 1개
+    if (!(state.req.shoot_colors || []).length) state.req.shoot_colors = state.productId ? productColors(product(state.productId)) : [];
+    if (!state.req.shoot_colors.length) state.req.shoot_colors = [''];
   }
   if (kind === 'shoot' && create && !state.req.purpose && state.productId) {
     const pk = product(state.productId)?.product_kind;
@@ -460,6 +463,7 @@ export function openRequestForm(kind, opts = {}) {
       state.productId = state.manual ? null : pSel.value || null;
     }
     $$('.prod-names [name]', body).forEach((i) => { state.req[i.name] = i.value.trim(); });
+    if ($('.color-rows', body)) state.req.shoot_colors = $$('[data-color]', body).map((i) => i.value.trim());
     const bSel = $('.pick [name=brand_id]', body);
     if (bSel) state.req.brand_id = bSel.value ? Number(bSel.value) : null;
   };
@@ -488,9 +492,13 @@ export function openRequestForm(kind, opts = {}) {
             <select class="input" name="product_brand_id">${options(S.data.brands.filter((b) => b.active || String(b.id) === String(state.req.product_brand_id)).map((b) => [String(b.id), b.name]), state.req.product_brand_id != null ? String(state.req.product_brand_id) : '', { empty: '선택' })}</select></label>
           <label class="field"><span>카테고리 <b class="req">*</b></span>
             <select class="input" name="product_category">${options(categoryList(state.req.product_category), state.req.product_category || '', { empty: '선택' })}</select></label>` : ''}
+          ${chosen ? `<div class="field color-field"><span>컬러 <small class="muted">${state.productId ? '물류/발주팀 등록 컬러 자동 입력 · 촬영하지 않을 컬러는 ✕로 삭제' : '촬영할 컬러 옵션별로 하나씩 입력'}</small></span>
+            <div class="color-rows">${(state.req.shoot_colors || ['']).map((c, i) => `<div class="color-row"><input class="input" data-color value="${esc(c)}" placeholder="예: 화이트">
+              <button type="button" class="icon-btn" data-rm-color="${i}" title="이 컬러 삭제">✕</button></div>`).join('')}</div>
+            <button type="button" class="btn btn-sm color-add" data-add-color>+ 컬러 추가</button></div>` : ''}
         </div>
         ${state.productId ? productInfo(state.productId, 'shoot')
-          : state.manual ? '<p class="muted small">등록되지 않은 제품입니다. 유통 제품명·온라인 제품명, 브랜드와 카테고리를 직접 입력하세요.</p>'
+          : state.manual ? '<p class="muted small">등록되지 않은 제품입니다. 유통 제품명·온라인 제품명, 브랜드·카테고리와 촬영할 컬러를 직접 입력하세요.</p>'
           : '<p class="muted small">물류/발주팀이 등록한 제품을 선택하면 사양과 유통 제품명이 자동으로 표시됩니다. 목록에 없으면 「직접 입력」을 고르세요.</p>'}</fieldset>`;
     } else {
       const brands = S.data.brands.filter((b) => b.active || String(b.id) === String(state.req.brand_id));
@@ -515,9 +523,12 @@ export function openRequestForm(kind, opts = {}) {
           state.req.product_category = null;   // 등록 제품은 제품 정보의 카테고리·브랜드 사용
           state.req.product_brand_id = null;
           state.req.product_online_name = p1?.online_name || '';
+          state.req.shoot_colors = productColors(p1);
+          if (!state.req.shoot_colors.length) state.req.shoot_colors = [''];
         } else if (state.manual && state._wasLinked) {
           state.req.product_retail_name = '';
           state.req.product_online_name = '';
+          state.req.shoot_colors = [''];
         }
         state._wasLinked = !!state.productId;
         const pk = product(state.productId)?.product_kind;
@@ -535,6 +546,21 @@ export function openRequestForm(kind, opts = {}) {
     const missing = $$('img[data-src-path]', body).filter((im) => !im.getAttribute('src')).map((im) => im.dataset.srcPath);
     if (missing.length) ensureUrls(missing).then(() => $$('img[data-src-path]', body).forEach((im) => { if (S.urls[im.dataset.srcPath]) im.src = S.urls[im.dataset.srcPath]; }));
     bindPkgSpec(body);
+    // 촬영 컬러: 옵션별 행 추가·삭제
+    $('[data-add-color]', body)?.addEventListener('click', () => {
+      snapshot();
+      state.req.shoot_colors = [...(state.req.shoot_colors || []), ''];
+      draw();
+      const rows = $$('[data-color]', body);
+      rows[rows.length - 1]?.focus();
+    });
+    $$('[data-rm-color]', body).forEach((b) => b.addEventListener('click', () => {
+      snapshot();
+      const list = [...(state.req.shoot_colors || [])];
+      list.splice(Number(b.dataset.rmColor), 1);
+      state.req.shoot_colors = list.length ? list : [''];
+      draw();
+    }));
     drawFiles();
     $('[data-add-type]', body)?.addEventListener('click', async () => {
       const name = $('[data-new-type]', body).value.trim();
@@ -602,6 +628,7 @@ export function openRequestForm(kind, opts = {}) {
     snapshot();
     if (!form.checkValidity()) { form.reportValidity(); return; }
     const req = { ...state.req };
+    if (kind === 'shoot') req.shoot_colors = [...new Set((req.shoot_colors || []).map((c) => String(c).trim()).filter(Boolean))];
     const files = [...state.files.req];
     const linkIds = kind === 'shoot' && create ? (state.req.ref_existing || []) : [];
     const missing = [];
@@ -713,7 +740,7 @@ function requestColumns(kind) {
   const common = ['product_id', 'priority', 'due_date', 'reference_url', 'request_note'];
   return {
     package: [...common, 'design_type', 'design_type_etc', 'package_spec', 'required_text', 'print_notes'],
-    shoot: [...common, 'product_retail_name', 'product_online_name', 'product_brand_id', 'product_category', 'purpose', 'purpose_etc', 'shoot_types', 'shoot_types_etc', 'location', 'location_etc', 'shoot_options', 'quantity', 'caution', 'desired_shoot_date'],
+    shoot: [...common, 'product_retail_name', 'product_online_name', 'product_brand_id', 'product_category', 'shoot_colors', 'purpose', 'purpose_etc', 'shoot_types', 'shoot_types_etc', 'location', 'location_etc', 'shoot_options', 'quantity', 'caution', 'desired_shoot_date'],
     design: [...common, 'brand_id', 'shoot_request_id', 'work_type', 'title', 'purpose', 'channels', 'channels_etc', 'plan_url', 'caution'],
   }[kind];
 }

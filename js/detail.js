@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, shootRetailName, shootOnlineName, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611201514';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611201514';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611201514';
-import { openRequestForm, openProductForm } from './forms.js?v=202611201514';
-import { launchSummary, progCell, histText } from './views.js?v=202611201514';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611231014';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611231014';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611231014';
+import { openRequestForm, openProductForm } from './forms.js?v=202611231014';
+import { launchSummary, progCell, histText } from './views.js?v=202611231014';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -351,6 +351,7 @@ function renderRequest(panel, kind, id) {
       ['온라인 제품명', esc(shootOnlineName(r) || '-')],
       ['브랜드', esc(p ? brandName(p.brand_id) : r.product_brand_id ? brandName(r.product_brand_id) : '-')],
       ['카테고리', esc(p?.category || r.product_category || '-')],
+      ['촬영 컬러', (r.shoot_colors || []).length ? r.shoot_colors.map((c) => `<span class="tag">${esc(c)}</span>`).join(' ') : '-'],
       ['촬영 목적', esc(r.purpose) + (r.purpose_etc ? ` (${esc(r.purpose_etc)})` : '')],
       ['촬영 유형', esc((r.shoot_types || []).join(', ')) + (r.shoot_types_etc ? ` (${esc(r.shoot_types_etc)})` : '')],
       ['촬영 장소', esc(r.location || '-') + (r.location_etc ? ` (${esc(r.location_etc)})` : '')],
