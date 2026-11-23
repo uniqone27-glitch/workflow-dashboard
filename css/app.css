@@ -518,3 +518,8 @@ select.ss-native { display: none !important; }
 .color-row { display: flex; gap: 6px; align-items: center; }
 .color-row .input { flex: 1; }
 .color-add { align-self: flex-start; margin-top: 6px; }
+
+/* ---------- v1.26: 02 협업 요청 ---------- */
+.collab-table td.collab-reason { white-space: normal; min-width: 220px; max-width: 360px; }
+.time-range { align-items: center; }
+.time-range .input { flex: 1; min-width: 0; }
