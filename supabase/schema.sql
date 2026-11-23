@@ -1133,6 +1133,7 @@ create or replace function public.collab_cleanup() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   delete from public.comments      where entity_type = 'collab' and entity_id = old.id;
+  delete from public.attachments   where entity_type = 'collab' and entity_id = old.id;
   delete from public.notifications where entity_type = 'collab' and entity_id = old.id;
   return old;
 end $$;
@@ -1172,3 +1173,20 @@ do $$ begin
   alter publication supabase_realtime add table public.collab_requests;
 exception when duplicate_object then null; end $$;
 
+-- ---------------------------------------------------------------------
+-- 협업 요청 파일 첨부 (v1.29)
+alter table public.attachments drop constraint if exists attachments_entity_type_check;
+alter table public.attachments add constraint attachments_entity_type_check
+  check (entity_type in ('product','package','shoot','design','dev','collab'));
+
+create or replace function public.can_attach(p_entity text, p_kind text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case
+    when public.my_role() = 'admin' then true
+    when p_entity in ('dev','collab') then public.is_member() and p_kind = 'file'
+    when p_kind = 'result' then public.my_role() = 'design'
+    when p_entity in ('product','package') then public.my_role() = 'logistics'
+    when p_entity = 'shoot' then public.my_role() in ('brand','design')
+    when p_entity = 'design' then public.my_role() = 'brand'
+    else false end
+$$;
