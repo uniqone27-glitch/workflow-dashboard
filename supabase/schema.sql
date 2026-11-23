@@ -200,6 +200,7 @@ create table public.shoot_requests (
   product_online_name text,
   product_brand_id   bigint references public.brands(id) on delete set null,   -- 직접 입력 시 브랜드
   product_category   text,   -- 직접 입력 시 카테고리
+  shoot_colors       text[] not null default '{}',   -- 촬영할 컬러 (옵션별)
   purpose            text not null,
   purpose_etc        text,
   shoot_types        text[] not null default '{}',
