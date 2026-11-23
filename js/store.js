@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK, CATEGORIES } from './constants.js?v=202611231014';
-import { today, addDays } from './ui.js?v=202611231014';
+import { KINDS, PRIORITY_RANK, CATEGORIES } from './constants.js?v=202611231028';
+import { today, addDays } from './ui.js?v=202611231028';
 
 export const S = {
   db: null,
@@ -79,6 +79,8 @@ export function productColors(p) {
   const raw = sp.option_mode === 'multi' && (sp.variants || []).length ? sp.variants.map(pick) : [pick(sp)];
   return [...new Set(raw.flatMap((v) => v.split(/[,，/·]+/)).map((v) => v.trim()).filter(Boolean))];
 }
+// 촬영 컬러: 요청에 저장된 값, 없으면 연결된 제품의 컬러
+export const shootColors = (r) => ((r?.shoot_colors || []).length ? r.shoot_colors : productColors(product(r?.product_id)));
 export const designers = () => S.data.profiles.filter((p) => p.active && (p.role === 'design' || p.role === 'admin'));
 
 export function productImages(pid) {

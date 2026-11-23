@@ -1,11 +1,11 @@
 import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName } from './store.js?v=202611231014';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231014';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231014';
-import { openDetail, openProduct } from './detail.js?v=202611231014';
-import { devReqView } from './devreq.js?v=202611231014';
-import { PATCH_NOTES } from './patchnotes.js?v=202611231014';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231014';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName, shootColors } from './store.js?v=202611231028';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231028';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231028';
+import { openDetail, openProduct } from './detail.js?v=202611231028';
+import { devReqView } from './devreq.js?v=202611231028';
+import { PATCH_NOTES } from './patchnotes.js?v=202611231028';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231028';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -248,7 +248,7 @@ function requestTable(list, showKind, kind = null) {
   const dash = '<span class="muted">-</span>';
   return `<div class="table-scroll"><table class="table">
     <thead><tr>
-      <th>제품 이미지</th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th>${named ? `<th>유통 제품명(한글)</th><th>유통 제품명(영문)</th>${shoot ? '<th>카테고리</th>' : ''}` : '<th>제품명 / 작업명</th>'}<th>${shoot ? '촬영 유형' : '요청 유형'}</th>
+      <th>제품 이미지</th><th>요청번호</th>${showKind ? '<th>구분</th>' : ''}<th>브랜드</th>${named ? `<th>유통 제품명(한글)</th><th>유통 제품명(영문)</th>${shoot ? '<th>컬러</th><th>카테고리</th>' : ''}` : '<th>제품명 / 작업명</th>'}<th>${shoot ? '촬영 유형' : '요청 유형'}</th>
       <th>요청 부서</th><th>요청자</th><th>담당자</th><th>우선순위</th><th>요청일</th><th>희망 완료일</th><th>상태</th>
     </tr></thead>
     <tbody>${list.map((r) => `
@@ -257,7 +257,7 @@ function requestTable(list, showKind, kind = null) {
         <td class="mono">${esc(r.code)}</td>
         ${showKind ? `<td>${KINDS[r._kind].short}</td>` : ''}
         <td>${esc(requestBrand(r))}</td>
-        ${named ? `<td class="title-cell"><strong>${esc(retail(r))}</strong></td><td class="title-cell">${retailEn(r) ? esc(retailEn(r)) : dash}</td>${shoot ? `<td>${requestCategory(r) ? esc(requestCategory(r)) : dash}</td>` : ''}`
+        ${named ? `<td class="title-cell"><strong>${esc(retail(r))}</strong></td><td class="title-cell">${retailEn(r) ? esc(retailEn(r)) : dash}</td>${shoot ? `<td class="title-cell">${shootColors(r).length ? esc(shootColors(r).join(', ')) : dash}</td><td>${requestCategory(r) ? esc(requestCategory(r)) : dash}</td>` : ''}`
           : `<td class="title-cell"><strong>${esc(requestTitle(r))}</strong>${r._kind === 'design' && r.product_id ? `<small>${esc(pname(product(r.product_id)))}</small>` : ''}</td>`}
         <td>${esc(requestType(r))}</td>
         <td>${ROLES[KINDS[r._kind].requester]}</td>
@@ -314,7 +314,7 @@ async function exportExcel(rows, label, kind = null) {
     const p = product(r.product_id);
     // 03 촬영 요청 탭: 촬영에 필요한 항목만
     if (kind === 'shoot') return {
-      유통제품명: shootRetailName(r), 온라인제품명: shootOnlineName(r),
+      유통제품명: shootRetailName(r), 온라인제품명: shootOnlineName(r), 컬러: shootColors(r).join(', '),
       카테고리: requestCategory(r), 촬영유형: requestType(r), '촬영 유의사항': r.caution || '',
     };
     return {
