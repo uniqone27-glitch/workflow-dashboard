@@ -512,3 +512,9 @@ select.ss-native { display: none !important; }
 .ss-opt.ss-disabled { color: var(--text-3); cursor: default; }
 .ss-group { padding: 8px 10px 3px; font-size: 11px; font-weight: 600; color: var(--text-3); }
 .ss-empty { padding: 12px 10px; font-size: 13px; color: var(--text-3); text-align: center; }
+
+/* ---------- v1.25: 촬영 컬러 (옵션별) ---------- */
+.color-rows { display: grid; gap: 6px; }
+.color-row { display: flex; gap: 6px; align-items: center; }
+.color-row .input { flex: 1; }
+.color-add { align-self: flex-start; margin-top: 6px; }
