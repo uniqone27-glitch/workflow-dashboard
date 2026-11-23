@@ -1,12 +1,12 @@
 import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName, shootColors } from './store.js?v=202611231118';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231118';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231118';
-import { openDetail, openProduct } from './detail.js?v=202611231118';
-import { devReqView } from './devreq.js?v=202611231118';
-import { collabView } from './collab.js?v=202611231118';
-import { PATCH_NOTES } from './patchnotes.js?v=202611231118';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231118';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName, shootColors, requestDept } from './store.js?v=202611231257';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231257';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231257';
+import { openDetail, openProduct } from './detail.js?v=202611231257';
+import { devReqView } from './devreq.js?v=202611231257';
+import { collabView } from './collab.js?v=202611231257';
+import { PATCH_NOTES } from './patchnotes.js?v=202611231257';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231257';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
@@ -262,7 +262,7 @@ function requestTable(list, showKind, kind = null) {
         ${named ? `<td class="title-cell"><strong>${esc(retail(r))}</strong></td><td class="title-cell">${retailEn(r) ? esc(retailEn(r)) : dash}</td>${shoot ? `<td class="title-cell">${shootColors(r).length ? esc(shootColors(r).join(', ')) : dash}</td><td>${requestCategory(r) ? esc(requestCategory(r)) : dash}</td>` : ''}`
           : `<td class="title-cell"><strong>${esc(requestTitle(r))}</strong>${r._kind === 'design' && r.product_id ? `<small>${esc(pname(product(r.product_id)))}</small>` : ''}</td>`}
         <td>${esc(requestType(r))}</td>
-        <td>${ROLES[KINDS[r._kind].requester]}</td>
+        <td>${esc(requestDept(r))}</td>
         <td>${esc(profileName(r.requester_id))}</td>
         <td>${assigneesOf(r).length ? esc(assigneeNames(r)) : '<span class="muted">미배정</span>'}</td>
         <td>${priorityTag(r.priority)}</td>
@@ -322,7 +322,7 @@ async function exportExcel(rows, label, kind = null) {
     return {
       요청번호: r.code, 구분: KINDS[r._kind].label, 브랜드: requestBrand(r), '제품명/작업명': requestTitle(r),
       유통제품명: p?.retail_name || r.product_retail_name || '', 온라인제품명: r.product_online_name || p?.online_name || '', 카테고리: requestCategory(r), 입고예정일: p?.arrival_date || '', 입고예정수량: p?.arrival_qty ?? '',
-      요청유형: requestType(r), 요청부서: ROLES[KINDS[r._kind].requester], 요청자: profileName(r.requester_id),
+      요청유형: requestType(r), 요청부서: requestDept(r), 요청자: profileName(r.requester_id),
       담당자: assigneeNames(r), 우선순위: r.priority, 상태: r.cancelled ? '취소' : r.status,
       요청일: (r.created_at || '').slice(0, 10), 희망완료일: r.due_date || '', 예상완료일: r.expected_date || '',
       실제완료일: r.completed_date || '', '결과물(URL·공유폴더 경로)': r.result_url || '',

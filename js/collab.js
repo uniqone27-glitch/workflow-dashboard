@@ -1,8 +1,8 @@
 // 02 협업 요청: 촬영·기타 업무를 위해 물류/발주팀 구성원에게 시간 협업을 요청
-import { S, can, profileName, loadTable } from './store.js?v=202611231118';
-import { ROLES } from './constants.js?v=202611231118';
-import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce, today } from './ui.js?v=202611231118';
-import { openDrawer, findPanel, commentsBlock, bindComments } from './detail.js?v=202611231118';
+import { S, can, profileName, loadTable } from './store.js?v=202611231257';
+import { ROLES } from './constants.js?v=202611231257';
+import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce, today } from './ui.js?v=202611231257';
+import { openDrawer, findPanel, commentsBlock, bindComments } from './detail.js?v=202611231257';
 
 export const COLLAB_PURPOSES = ['촬영 지원', '제품 세팅·이동', '입고·검수 지원', '샘플 확인', '기타'];
 export const COLLAB_STATUSES = ['요청', '수락', '완료', '반려'];

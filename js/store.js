@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK, CATEGORIES } from './constants.js?v=202611231118';
-import { today, addDays } from './ui.js?v=202611231118';
+import { KINDS, PRIORITY_RANK, CATEGORIES, ROLES as ROLES_LABEL } from './constants.js?v=202611231257';
+import { today, addDays } from './ui.js?v=202611231257';
 
 export const S = {
   db: null,
@@ -81,6 +81,12 @@ export function productColors(p) {
 }
 // 촬영 컬러: 요청에 저장된 값, 없으면 연결된 제품의 컬러
 export const shootColors = (r) => ((r?.shoot_colors || []).length ? r.shoot_colors : productColors(product(r?.product_id)));
+// 요청 부서: 작성자의 소속 팀 (관리자·기본 부서와 같으면 업무 유형의 기본 요청 부서)
+export function requestDept(r) {
+  const base = KINDS[r?._kind]?.requester;
+  const rl = profileRole(r?.requester_id);
+  return ROLES_LABEL[rl && rl !== 'admin' && rl !== 'pending' ? rl : base] || '';
+}
 export const designers = () => S.data.profiles.filter((p) => p.active && (p.role === 'design' || p.role === 'admin'));
 
 export function productImages(pid) {
@@ -169,8 +175,10 @@ export function sortRequests(list, mode) {
 
 // ---- 권한 (화면 표시용. 실제 권한은 DB RLS/트리거가 최종 검증) ----
 export const can = {
-  createRequest: (kind) => ['admin', KINDS[kind].requester].includes(role()),
-  editRequest: (kind) => ['admin', KINDS[kind].requester].includes(role()),
+  // 촬영 요청은 디자인팀도 작성 가능 (디자인팀은 본인이 작성한 요청만 수정·취소)
+  createRequest: (kind) => ['admin', KINDS[kind].requester].includes(role()) || (kind === 'shoot' && role() === 'design'),
+  editRequest: (kind, r = null) => ['admin', KINDS[kind].requester].includes(role())
+    || (kind === 'shoot' && role() === 'design' && (!r || r.requester_id === S.me?.id)),
   work: () => ['admin', 'design'].includes(role()),
   editProduct: () => ['admin', 'logistics'].includes(role()),
   launch: () => ['admin', 'brand'].includes(role()),
@@ -181,6 +189,7 @@ export const can = {
     if (entity === 'dev') return kind === 'file';
     if (kind === 'result') return r === 'design';
     if (entity === 'product' || entity === 'package') return r === 'logistics';
+    if (entity === 'shoot') return r === 'brand' || r === 'design';
     return r === 'brand';
   },
 };

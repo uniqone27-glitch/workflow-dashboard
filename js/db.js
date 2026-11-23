@@ -2,7 +2,7 @@
 //  - supabase: 실제 운영용 (중앙 DB + 인증 + 파일 저장소 + 실시간)
 //  - demo: 화면 확인용 체험 모드 (index.html?demo=1). 이 브라우저에만 저장되므로 운영 용도로 쓰지 않습니다.
 
-import { CATEGORIES } from './constants.js?v=202611231118';
+import { CATEGORIES } from './constants.js?v=202611231257';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 
 export const TABLES = [
@@ -224,7 +224,7 @@ export function demoBackend() {
       const list = Array.isArray(rows) ? rows : [rows];
       const r = role();
       if (WRITE[table] && !WRITE[table].includes(r)) throw new Error('권한이 없습니다. (서버에서 거부됨)');
-      if (REQ[table] && !['admin', REQ[table][0]].includes(r)) throw new Error('권한이 없습니다. (서버에서 거부됨)');
+      if (REQ[table] && !['admin', REQ[table][0]].includes(r) && !(table === 'shoot_requests' && r === 'design')) throw new Error('권한이 없습니다. (서버에서 거부됨)');
       const out = list.map((src) => {
         const row = { id: uuid(), created_at: now(), updated_at: now(), updated_by: uid(), ...src };
         if (table === 'products') { row.code = codeOf('PRD'); row.created_by = uid(); row.specs ??= {}; row.options ??= []; row.spec_changes ??= []; }
@@ -281,7 +281,9 @@ export function demoBackend() {
       if (table === 'profiles' && r !== 'admin' && (patch.role || patch.active !== undefined)) throw new Error('권한이 없습니다: 역할은 관리자만 변경할 수 있습니다.');
       if (REQ[table] && r !== 'admin') {
         const keys = Object.keys(patch).filter((k) => JSON.stringify(patch[k]) !== JSON.stringify(row[k]));
-        if (r === 'design') {
+        if (r === 'design' && row.requester_id === uid()) {
+          // 디자인팀이 직접 작성한 촬영 요청은 작성자처럼 수정 가능
+        } else if (r === 'design') {
           const bad = keys.filter((k) => !WORK[table].includes(k));
           if (bad.length) throw new Error(`디자인팀은 담당자·진행 상태·일정·결과물·작업 메모만 수정할 수 있습니다. (수정 불가 항목: ${bad.join(', ')})`);
         } else if (r === REQ[table][0]) {

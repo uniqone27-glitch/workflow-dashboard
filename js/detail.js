@@ -1,9 +1,9 @@
-import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, shootRetailName, shootOnlineName, shootColors, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611231118';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611231118';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611231118';
-import { openRequestForm, openProductForm } from './forms.js?v=202611231118';
-import { launchSummary, progCell, histText } from './views.js?v=202611231118';
+import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, shootRetailName, shootOnlineName, shootColors, requestDept, brandName, launchOf, designers,
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611231257';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611231257';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611231257';
+import { openRequestForm, openProductForm } from './forms.js?v=202611231257';
+import { launchSummary, progCell, histText } from './views.js?v=202611231257';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -336,7 +336,7 @@ function renderRequest(panel, kind, id) {
   const r = { ...r0, _kind: kind };
   const p = product(r.product_id);
   const meta = KINDS[kind];
-  const editable = can.editRequest(kind) && !r.cancelled;
+  const editable = can.editRequest(kind, r) && !r.cancelled;
   const workable = can.work() && !r.cancelled;
   const rerender = () => { const t = el.scrollTop; renderRequest(panel, kind, id); el.scrollTop = t; };
 
@@ -390,7 +390,7 @@ function renderRequest(panel, kind, id) {
       ${editable ? '<button class="btn btn-sm" data-edit>요청 내용 수정</button>' : ''}
       ${kind === 'shoot' && can.createRequest('design') ? '<button class="btn btn-sm btn-primary" data-follow>후속 디자인 요청 생성</button>' : ''}
       ${editable && r.status !== '완료' ? '<button class="btn btn-sm" data-cancel>요청 취소</button>' : ''}
-      ${r.cancelled && can.editRequest(kind) ? '<button class="btn btn-sm" data-uncancel>취소 철회</button>' : ''}
+      ${r.cancelled && can.editRequest(kind, r) ? '<button class="btn btn-sm" data-uncancel>취소 철회</button>' : ''}
       ${can.admin() ? '<button class="btn btn-sm btn-danger-ghost" data-delete>삭제</button>' : ''}
     </div>
     ${r.cancelled ? `<div class="notice">취소된 요청입니다.${r.cancel_reason ? ` 사유: ${esc(r.cancel_reason)}` : ''}</div>` : ''}
@@ -400,7 +400,7 @@ function renderRequest(panel, kind, id) {
     <section class="section">
       <h3>요청 정보</h3>
       ${fields([
-        ['요청 부서', ROLES[meta.requester]], ['요청자', esc(profileName(r.requester_id))],
+        ['요청 부서', esc(requestDept(r))], ['요청자', esc(profileName(r.requester_id))],
         ['요청일', fmtDateTime(r.created_at)], ['희망 완료일', `<span class="${isOverdue(r) ? 'over' : ''}">${fmtDate(r.due_date)}${isOverdue(r) ? ' (기한 초과)' : ''}</span>`],
         ...reqRows,
       ])}
