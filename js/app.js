@@ -1,13 +1,13 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611231105';
-import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611231105';
-import { KINDS } from './constants.js?v=202611231105';
-import { ROLES } from './constants.js?v=202611231105';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611231105';
-import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611231105';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611231105';
-import { openDevRequest } from './devreq.js?v=202611231105';
-import { openCollab } from './collab.js?v=202611231105';
-import { initCombos } from './combo.js?v=202611231105';
+import { supabaseBackend, demoBackend } from './db.js?v=202611231118';
+import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611231118';
+import { KINDS } from './constants.js?v=202611231118';
+import { ROLES } from './constants.js?v=202611231118';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611231118';
+import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611231118';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611231118';
+import { openDevRequest } from './devreq.js?v=202611231118';
+import { openCollab } from './collab.js?v=202611231118';
+import { initCombos } from './combo.js?v=202611231118';
 
 // 모든 드롭다운을 검색 가능한 드롭다운으로 (새로 그려지는 화면·팝업 포함)
 initCombos();

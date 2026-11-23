@@ -1,8 +1,8 @@
 // 02 협업 요청: 촬영·기타 업무를 위해 물류/발주팀 구성원에게 시간 협업을 요청
-import { S, can, profileName, loadTable } from './store.js?v=202611231105';
-import { ROLES } from './constants.js?v=202611231105';
-import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce, today } from './ui.js?v=202611231105';
-import { openDrawer, findPanel, commentsBlock, bindComments } from './detail.js?v=202611231105';
+import { S, can, profileName, loadTable } from './store.js?v=202611231118';
+import { ROLES } from './constants.js?v=202611231118';
+import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce, today } from './ui.js?v=202611231118';
+import { openDrawer, findPanel, commentsBlock, bindComments } from './detail.js?v=202611231118';
 
 export const COLLAB_PURPOSES = ['촬영 지원', '제품 세팅·이동', '입고·검수 지원', '샘플 확인', '기타'];
 export const COLLAB_STATUSES = ['요청', '수락', '완료', '반려'];
@@ -33,7 +33,7 @@ export function collabView(route, el) {
   el.innerHTML = `
     <div class="dev-intro card">
       <div><h3>물류/발주팀 협업 요청</h3>
-        <p class="muted small">촬영·기타 업무에 물류/발주팀의 시간 협업이 필요할 때 요청하세요. 요청하면 물류/발주팀에 🔔·슬랙 DM 알림이 가고,
+        <p class="muted small">촬영·기타 업무에 물류/발주팀의 시간 협업이 필요할 때 요청하세요. 「요청 받는 자」를 고르면 그 사람에게, 고르지 않으면 물류/발주팀 전체에 🔔·슬랙 DM 알림이 가고,
         담당자가 배정·수락되면 요청자에게 알려 드립니다.</p></div>
       <button class="btn btn-primary" data-new-collab>+ 협업 요청하기</button>
     </div>
@@ -101,8 +101,10 @@ export function openCollabForm(edit = null) {
           <input class="input" type="time" name="time_end" value="${esc(hhmm(r.time_end))}"></div></div>
         <label class="field wide"><span>장소</span><input class="input" name="location" list="collab-places" value="${esc(r.location || '')}" placeholder="예: 쇼룸, 물류창고, 외부 스튜디오">
           <datalist id="collab-places">${PLACES.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></label>
+        <div class="field wide"><span>요청 받는 자 <small class="muted">물류/발주팀에서 여러 명 선택 가능 · 선택한 사람에게만 알림 (선택하지 않으면 물류/발주팀 전체)</small></span>
+          <div class="checks assignee-pick">${logisticsMembers(r.assignee_ids || []).map(([pid, name]) => `<label class="check"><input type="checkbox" data-recipient value="${esc(pid)}" ${(r.assignee_ids || []).includes(pid) ? 'checked' : ''}><span>${esc(name)}</span></label>`).join('') || '<span class="muted small">물류/발주팀 구성원이 없습니다.</span>'}</div></div>
       </div></div>
-      <div class="modal-foot"><span class="muted small">${edit ? '' : '등록하면 물류/발주팀에 알림이 갑니다.'}</span><div class="grow"></div>
+      <div class="modal-foot"><span class="muted small">${edit ? '' : '등록하면 요청 받는 자(선택하지 않으면 물류/발주팀 전체)에게 알림이 갑니다.'}</span><div class="grow"></div>
         <button type="button" class="btn" data-close>취소</button><button class="btn btn-primary">${edit ? '저장' : '요청 등록'}</button></div>
     </form>`, { wide: true });
   const form = $('form', m.el);
@@ -114,6 +116,7 @@ export function openCollabForm(edit = null) {
       reason: form.reason.value.trim(), req_date: form.req_date.value || null,
       time_start: form.time_start.value || null, time_end: form.time_end.value || null,
       location: form.location.value.trim() || null,
+      assignee_ids: $$('[data-recipient]', form).filter((c) => c.checked).map((c) => c.value),
     };
     const missing = [!v.purpose && '협업 목적', v.purpose === '기타' && !v.purpose_etc && '직접 입력(기타)', !v.reason && '협업 이유', !v.req_date && '요청 일자'].filter(Boolean);
     if (missing.length) return toast(`필수 항목을 입력하세요: ${missing.join(', ')}`, 'error');
@@ -182,6 +185,7 @@ function renderCollab(panel, id) {
         <div><dt>장소</dt><dd>${esc(r.location || '-')}</dd></div>
         <div><dt>요청부서</dt><dd>${esc(deptOf(r.requester_id))}</dd></div>
         <div><dt>요청자</dt><dd>${esc(profileName(r.requester_id))} <span class="muted small">${fmtDateTime(r.created_at)}</span></dd></div>
+        <div><dt>요청 받는 자</dt><dd>${esc(assigneeText(r) || '물류/발주팀 전체')}</dd></div>
         <div class="wide"><dt>협업 이유</dt><dd>${nl(r.reason)}</dd></div>
       </dl>
     </section>
@@ -190,7 +194,7 @@ function renderCollab(panel, id) {
       <h3>물류/발주팀 처리</h3>
       ${proc ? `<form class="collab-proc">
         <div class="status-pick">${COLLAB_STATUSES.map((s) => `<label><input type="radio" name="status" value="${s}" ${r.status === s ? 'checked' : ''}><span>${s}</span></label>`).join('')}</div>
-        <div class="field"><span>담당자 <small class="muted">여러 명 선택 가능 · 새로 배정된 사람에게 알림</small></span>
+        <div class="field"><span>담당자 (요청 받는 자) <small class="muted">여러 명 선택 가능 · 새로 배정된 사람에게 알림</small></span>
           <div class="checks assignee-pick">${logisticsMembers(r.assignee_ids || []).map(([pid, name]) => `<label class="check"><input type="checkbox" data-assignee value="${esc(pid)}" ${(r.assignee_ids || []).includes(pid) ? 'checked' : ''}><span>${esc(name)}</span></label>`).join('') || '<span class="muted small">물류/발주팀 구성원이 없습니다.</span>'}</div></div>
         <label class="field"><span>처리 메모 · 답변 <small class="muted">요청자에게 알림이 갑니다</small></span>
           <textarea class="input" name="response" rows="3" placeholder="예: 11/25 10시 김물류 지원 예정, 반려 사유 등">${esc(r.response || '')}</textarea></label>

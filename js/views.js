@@ -1,12 +1,12 @@
 import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName, shootColors } from './store.js?v=202611231105';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231105';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231105';
-import { openDetail, openProduct } from './detail.js?v=202611231105';
-import { devReqView } from './devreq.js?v=202611231105';
-import { collabView } from './collab.js?v=202611231105';
-import { PATCH_NOTES } from './patchnotes.js?v=202611231105';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231105';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName, shootColors } from './store.js?v=202611231118';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231118';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231118';
+import { openDetail, openProduct } from './detail.js?v=202611231118';
+import { devReqView } from './devreq.js?v=202611231118';
+import { collabView } from './collab.js?v=202611231118';
+import { PATCH_NOTES } from './patchnotes.js?v=202611231118';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231118';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },

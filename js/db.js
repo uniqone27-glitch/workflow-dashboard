@@ -2,7 +2,7 @@
 //  - supabase: 실제 운영용 (중앙 DB + 인증 + 파일 저장소 + 실시간)
 //  - demo: 화면 확인용 체험 모드 (index.html?demo=1). 이 브라우저에만 저장되므로 운영 용도로 쓰지 않습니다.
 
-import { CATEGORIES } from './constants.js?v=202611231105';
+import { CATEGORIES } from './constants.js?v=202611231118';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 
 export const TABLES = [
@@ -247,9 +247,10 @@ export function demoBackend() {
         }
         if (table === 'collab_requests') {
           row.code = codeOf('COL'); row.requester_id = uid(); row.status_changed_at = now(); row.status_changed_by = uid();
-          if (!['admin', 'logistics'].includes(r)) { row.status = '요청'; row.assignee_ids = []; row.response = null; }
+          if (!['admin', 'logistics'].includes(r)) { row.status = '요청'; row.response = null; }
           row.status ||= '요청'; row.assignee_ids ||= [];
-          devNotify({ entity_type: 'collab', target_role: 'logistics', title: `신규 협업 요청 (${row.purpose})`, body: `${row.code} · ${row.req_date}` }, row);
+          if (row.assignee_ids.length) row.assignee_ids.forEach((u) => devNotify({ entity_type: 'collab', target_user: u, title: `협업 요청이 도착했습니다 (${row.purpose})`, body: `${row.code} · ${row.req_date}` }, row));
+          else devNotify({ entity_type: 'collab', target_role: 'logistics', title: `신규 협업 요청 (${row.purpose})`, body: `${row.code} · ${row.req_date}` }, row);
         }
         db[table].push(row);
         if (table === 'comments' && ((row.mentions || []).length || (row.mention_roles || []).length)) {
@@ -295,7 +296,7 @@ export function demoBackend() {
       }
       if (table === 'collab_requests' && !['admin', 'logistics'].includes(r)) {
         if (row.requester_id !== uid()) throw new Error('본인이 등록한 요청만 수정할 수 있습니다.');
-        if (['status', 'assignee_ids', 'response'].some((k) => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(row[k]))) throw new Error('진행 상태·담당자·답변은 물류/발주팀만 변경할 수 있습니다.');
+        if (['status', 'response'].some((k) => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(row[k]))) throw new Error('진행 상태·답변은 물류/발주팀만 변경할 수 있습니다.');
         if (row.status !== '요청') throw new Error('물류/발주팀이 수락한 요청은 수정할 수 없습니다. 변경 사항은 댓글로 남겨 주세요.');
       }
       const before = structuredClone(row);
