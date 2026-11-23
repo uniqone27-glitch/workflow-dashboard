@@ -429,6 +429,11 @@ begin
    where n.value is distinct from (to_jsonb(old) -> n.key)
      and not (n.key = any(sys_cols));
 
+  -- 디자인팀이 직접 작성한 요청(촬영 요청)은 작성자처럼 내용 수정 가능
+  if r = 'design' and old.requester_id = auth.uid() then
+    return new;
+  end if;
+
   if r = 'design' then
     bad := array(select unnest(changed) except select unnest(work_cols));
     if cardinality(bad) > 0 then
@@ -720,7 +725,7 @@ create policy pkg_delete on public.package_requests for delete to authenticated 
 
 -- shoot requests: 요청 = 브랜드팀, 처리 = 디자인팀
 create policy sht_select on public.shoot_requests for select to authenticated using (public.is_member());
-create policy sht_insert on public.shoot_requests for insert to authenticated with check (public.my_role() in ('admin','brand'));
+create policy sht_insert on public.shoot_requests for insert to authenticated with check (public.my_role() in ('admin','brand','design'));
 create policy sht_update on public.shoot_requests for update to authenticated
   using (public.my_role() in ('admin','brand','design')) with check (public.my_role() in ('admin','brand','design'));
 create policy sht_delete on public.shoot_requests for delete to authenticated using (public.my_role() = 'admin');
@@ -739,7 +744,8 @@ language sql stable security definer set search_path = public as $$
     when public.my_role() = 'admin' then true
     when p_kind = 'result' then public.my_role() = 'design'
     when p_entity in ('product','package') then public.my_role() = 'logistics'
-    when p_entity in ('shoot','design') then public.my_role() = 'brand'
+    when p_entity = 'shoot' then public.my_role() in ('brand','design')
+    when p_entity = 'design' then public.my_role() = 'brand'
     else false end
 $$;
 create policy att_select on public.attachments for select to authenticated using (public.is_member());
@@ -970,7 +976,8 @@ language sql stable security definer set search_path = public as $$
     when p_entity = 'dev' then public.is_member() and p_kind = 'file'
     when p_kind = 'result' then public.my_role() = 'design'
     when p_entity in ('product','package') then public.my_role() = 'logistics'
-    when p_entity in ('shoot','design') then public.my_role() = 'brand'
+    when p_entity = 'shoot' then public.my_role() in ('brand','design')
+    when p_entity = 'design' then public.my_role() = 'brand'
     else false end
 $$;
 
