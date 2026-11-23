@@ -1,20 +1,22 @@
 import { S, can, categoryList, requests, allRequests, requestTitle, requestType, requestBrand, product, pname, productThumb, requestThumb, requestThumbAtt, productThumbAtt, profileName,
-  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName, shootColors } from './store.js?v=202611231028';
-import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231028';
-import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231028';
-import { openDetail, openProduct } from './detail.js?v=202611231028';
-import { devReqView } from './devreq.js?v=202611231028';
-import { PATCH_NOTES } from './patchnotes.js?v=202611231028';
-import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231028';
+  brandName, launchOf, isOverdue, isOpen, dueThisWeek, sortRequests, designers, assigneesOf, isAssignee, assigneeNames, loadTable, ensureUrls, requestCategory, shootRetailName, shootOnlineName, shootColors } from './store.js?v=202611231105';
+import { KINDS, ROLES, STATUSES, PRIORITIES, CATEGORIES, PRODUCT_KINDS, LAUNCH_STATES, PACKAGE_TYPES, SHOOT_TYPES, FIELD_LABELS } from './constants.js?v=202611231105';
+import { $, $$, esc, fmtDate, timeAgo, statusPill, priorityTag, options, toast, errMsg, debounce, today, confirmBox } from './ui.js?v=202611231105';
+import { openDetail, openProduct } from './detail.js?v=202611231105';
+import { devReqView } from './devreq.js?v=202611231105';
+import { collabView } from './collab.js?v=202611231105';
+import { PATCH_NOTES } from './patchnotes.js?v=202611231105';
+import { openRequestForm, openProductForm, openDraftList } from './forms.js?v=202611231105';
 
 export const ROUTES = [
   { name: 'dashboard', no: '01', label: '통합 대시보드' },
-  { name: 'package', no: '02', label: '패키지 디자인 요청' },
-  { name: 'shoot', no: '03', label: '촬영 요청' },
-  { name: 'design', no: '04', label: '디자인 작업 요청' },
-  { name: 'products', no: '05', label: '제품 통합 관리' },
-  { name: 'devreq', no: '06', label: '개발요청' },
-  { name: 'patchnotes', no: '07', label: '패치노트' },
+  { name: 'collab', no: '02', label: '협업 요청' },
+  { name: 'package', no: '03', label: '패키지 디자인 요청' },
+  { name: 'shoot', no: '04', label: '촬영 요청' },
+  { name: 'design', no: '05', label: '디자인 작업 요청' },
+  { name: 'products', no: '06', label: '제품 통합 관리' },
+  { name: 'devreq', no: '07', label: '개발요청' },
+  { name: 'patchnotes', no: '08', label: '패치노트' },
   { name: 'admin', no: '⚙', label: '사용자 · 설정', admin: true },
   { name: 'tasks', label: '전체 업무', title: '전체 업무 목록', hidden: true },
 ];
@@ -24,7 +26,7 @@ export function renderView(route, el, fresh = false) {
   if (!fresh && el.dataset.route === route.name && el._update) { el._update(); return; }
   el.dataset.route = route.name;
   el._update = null;
-  const fn = { dashboard: dashboardView, package: requestView, shoot: requestView, design: requestView, tasks: requestView, products: productsView, devreq: devReqView, patchnotes: patchNotesView, admin: adminView }[route.name];
+  const fn = { dashboard: dashboardView, package: requestView, shoot: requestView, design: requestView, tasks: requestView, products: productsView, collab: collabView, devreq: devReqView, patchnotes: patchNotesView, admin: adminView }[route.name];
   fn(route, el);
 }
 

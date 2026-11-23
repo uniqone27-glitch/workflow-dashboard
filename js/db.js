@@ -2,12 +2,12 @@
 //  - supabase: 실제 운영용 (중앙 DB + 인증 + 파일 저장소 + 실시간)
 //  - demo: 화면 확인용 체험 모드 (index.html?demo=1). 이 브라우저에만 저장되므로 운영 용도로 쓰지 않습니다.
 
-import { CATEGORIES } from './constants.js?v=202611231028';
+import { CATEGORIES } from './constants.js?v=202611231105';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 
 export const TABLES = [
   'profiles', 'brands', 'design_work_types', 'categories', 'products', 'launch_readiness',
-  'package_requests', 'shoot_requests', 'design_requests', 'dev_requests',
+  'package_requests', 'shoot_requests', 'design_requests', 'dev_requests', 'collab_requests',
   'attachments', 'comments', 'history', 'notifications', 'notification_reads', 'drafts',
 ];
 const BUCKET = 'files';
@@ -105,6 +105,7 @@ export function demoBackend() {
   try { db = JSON.parse(localStorage.getItem(KEY)); } catch { db = null; }
   if (!db) db = seed();
   db.dev_requests ||= [];
+  db.collab_requests ||= [];
   db.categories ||= CATEGORIES.map((name, i) => ({ name, sort: i + 1, active: true }));
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* 용량 초과 무시 */ } };
   const emit = (table, eventType, row) => {
@@ -244,10 +245,16 @@ export function demoBackend() {
           row.status ||= '접수'; row.priority ||= '보통';
           devNotify({ target_role: 'admin', title: `신규 개발 요청 (${row.req_type})`, body: `${row.code} · ${row.title}` }, row);
         }
+        if (table === 'collab_requests') {
+          row.code = codeOf('COL'); row.requester_id = uid(); row.status_changed_at = now(); row.status_changed_by = uid();
+          if (!['admin', 'logistics'].includes(r)) { row.status = '요청'; row.assignee_ids = []; row.response = null; }
+          row.status ||= '요청'; row.assignee_ids ||= [];
+          devNotify({ entity_type: 'collab', target_role: 'logistics', title: `신규 협업 요청 (${row.purpose})`, body: `${row.code} · ${row.req_date}` }, row);
+        }
         db[table].push(row);
         if (table === 'comments' && ((row.mentions || []).length || (row.mention_roles || []).length)) {
           const who = db.profiles.find((p) => p.id === uid())?.name || '';
-          const t = { package: db.package_requests, shoot: db.shoot_requests, design: db.design_requests, dev: db.dev_requests }[row.entity_type];
+          const t = { package: db.package_requests, shoot: db.shoot_requests, design: db.design_requests, dev: db.dev_requests, collab: db.collab_requests }[row.entity_type];
           const target = t?.find((x) => x.id === row.entity_id);
           const pr = row.entity_type === 'product' ? db.products.find((x) => x.id === row.entity_id) : null;
           const label = target?.code || pr?.retail_name || '';
@@ -286,8 +293,22 @@ export function demoBackend() {
         if (('status' in patch && patch.status !== row.status) || ('answer' in patch && patch.answer !== row.answer)) throw new Error('진행 상태와 답변은 관리자만 변경할 수 있습니다.');
         if (row.status !== '접수') throw new Error('관리자가 확인을 시작한 요청은 수정할 수 없습니다. 추가 내용은 댓글로 남겨 주세요.');
       }
+      if (table === 'collab_requests' && !['admin', 'logistics'].includes(r)) {
+        if (row.requester_id !== uid()) throw new Error('본인이 등록한 요청만 수정할 수 있습니다.');
+        if (['status', 'assignee_ids', 'response'].some((k) => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(row[k]))) throw new Error('진행 상태·담당자·답변은 물류/발주팀만 변경할 수 있습니다.');
+        if (row.status !== '요청') throw new Error('물류/발주팀이 수락한 요청은 수정할 수 없습니다. 변경 사항은 댓글로 남겨 주세요.');
+      }
       const before = structuredClone(row);
       Object.assign(row, patch, { updated_at: now(), updated_by: uid() });
+      if (table === 'collab_requests') {
+        const label = `${row.code} · ${row.purpose} · ${row.req_date}`;
+        if (before.status !== row.status) {
+          row.status_changed_at = now(); row.status_changed_by = uid();
+          devNotify({ entity_type: 'collab', target_user: row.requester_id, title: `협업 요청 ${row.status === '완료' ? '완료' : `상태 변경: ${row.status}`}`, body: label }, row);
+        }
+        (row.assignee_ids || []).filter((u) => !(before.assignee_ids || []).includes(u)).forEach((u) => devNotify({ entity_type: 'collab', target_user: u, title: '협업 요청 담당자로 배정됨', body: label }, row));
+        if (row.response && row.response !== before.response) devNotify({ entity_type: 'collab', target_user: row.requester_id, title: '협업 요청에 답변이 등록되었습니다', body: `${label} · ${row.response.slice(0, 80)}` }, row);
+      }
       if (table === 'dev_requests') {
         const label = `${row.code} · ${row.title}`;
         if (before.status !== row.status) {
@@ -310,7 +331,8 @@ export function demoBackend() {
       const idx = db[table].findIndex((x) => Object.entries(match).every(([k, v]) => x[k] === v));
       if (idx < 0) throw new Error('대상을 찾을 수 없습니다.');
       const r = role();
-      const own = table === 'dev_requests' && db[table][idx].requester_id === uid() && db[table][idx].status === '접수';
+      const own = (table === 'dev_requests' && db[table][idx].requester_id === uid() && db[table][idx].status === '접수')
+        || (table === 'collab_requests' && db[table][idx].requester_id === uid() && db[table][idx].status === '요청');
       if (!['drafts', 'comments', 'attachments'].includes(table) && r !== 'admin' && !own) throw new Error('삭제 권한이 없습니다. (관리자 전용)');
       const [row] = db[table].splice(idx, 1);
       if (table === 'products') {

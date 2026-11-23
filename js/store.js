@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK, CATEGORIES } from './constants.js?v=202611231028';
-import { today, addDays } from './ui.js?v=202611231028';
+import { KINDS, PRIORITY_RANK, CATEGORIES } from './constants.js?v=202611231105';
+import { today, addDays } from './ui.js?v=202611231105';
 
 export const S = {
   db: null,
@@ -9,7 +9,7 @@ export const S = {
   data: {
     profiles: [], brands: [], design_work_types: [], categories: [], products: [], launch_readiness: [],
     package_requests: [], shoot_requests: [], design_requests: [],
-    dev_requests: [],
+    dev_requests: [], collab_requests: [],
     attachments: [], comments: [], history: [], notifications: [], notification_reads: [], drafts: [],
   },
   urls: {},

@@ -1,8 +1,8 @@
-// 06 개발요청: 대시보드 수정·보완·신규 기능·오류 요청 (모든 구성원)
-import { S, can, profileName, attachmentsOf, loadTable, ensureUrls } from './store.js?v=202611231028';
-import { ROLES } from './constants.js?v=202611231028';
-import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce } from './ui.js?v=202611231028';
-import { openDrawer, findPanel, attachmentBlock, bindAttachments, commentsBlock, bindComments, uploadFiles, isImage } from './detail.js?v=202611231028';
+// 07 개발요청: 대시보드 수정·보완·신규 기능·오류 요청 (모든 구성원)
+import { S, can, profileName, attachmentsOf, loadTable, ensureUrls } from './store.js?v=202611231105';
+import { ROLES } from './constants.js?v=202611231105';
+import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce } from './ui.js?v=202611231105';
+import { openDrawer, findPanel, attachmentBlock, bindAttachments, commentsBlock, bindComments, uploadFiles, isImage } from './detail.js?v=202611231105';
 
 export const DEV_TYPES = ['오류', '수정', '보완', '신규 기능'];
 export const DEV_AREAS = ['공통', '통합 대시보드', '패키지 디자인 요청', '촬영 요청', '디자인 작업 요청', '제품 통합 관리', '사용자 · 설정', '기타'];
@@ -26,7 +26,7 @@ export function devReqView(route, el) {
     <div class="dev-intro card">
       <div><h3>대시보드 개발 요청</h3>
         <p class="muted small">대시보드를 쓰면서 불편한 점, 고쳐야 할 오류, 추가되면 좋을 기능을 자유롭게 요청하세요.
-        관리자가 확인한 뒤 진행 상태와 답변을 남기면 🔔·슬랙 DM으로 알려 드립니다. 반영된 내용은 「07 패치노트」에서 확인할 수 있습니다.</p></div>
+        관리자가 확인한 뒤 진행 상태와 답변을 남기면 🔔·슬랙 DM으로 알려 드립니다. 반영된 내용은 「08 패치노트」에서 확인할 수 있습니다.</p></div>
       <button class="btn btn-primary" data-new-dev>+ 개발 요청하기</button>
     </div>
     <div class="toolbar">

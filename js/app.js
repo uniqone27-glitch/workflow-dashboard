@@ -1,12 +1,13 @@
-import { supabaseBackend, demoBackend } from './db.js?v=202611231028';
-import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611231028';
-import { KINDS } from './constants.js?v=202611231028';
-import { ROLES } from './constants.js?v=202611231028';
-import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611231028';
-import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611231028';
-import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611231028';
-import { openDevRequest } from './devreq.js?v=202611231028';
-import { initCombos } from './combo.js?v=202611231028';
+import { supabaseBackend, demoBackend } from './db.js?v=202611231105';
+import { S, loadAll, loadTable, ensureUrls, thumbPaths, myNotifications, can, allRequests, isOverdue, requestTitle, isAssignee } from './store.js?v=202611231105';
+import { KINDS } from './constants.js?v=202611231105';
+import { ROLES } from './constants.js?v=202611231105';
+import { $, $$, esc, toast, errMsg, timeAgo, openModal, openLightbox } from './ui.js?v=202611231105';
+import { renderView, ROUTES, hasNewPatchNotes } from './views.js?v=202611231105';
+import { openDetail, openProduct, refreshOpenPanels, closeAllPanels } from './detail.js?v=202611231105';
+import { openDevRequest } from './devreq.js?v=202611231105';
+import { openCollab } from './collab.js?v=202611231105';
+import { initCombos } from './combo.js?v=202611231105';
 
 // 모든 드롭다운을 검색 가능한 드롭다운으로 (새로 그려지는 화면·팝업 포함)
 initCombos();
@@ -223,6 +224,7 @@ function renderNav() {
     shoot: S.data.shoot_requests.filter((x) => !x.cancelled && x.status === '요청').length,
     design: S.data.design_requests.filter((x) => !x.cancelled && x.status === '요청').length,
     devreq: can.admin() ? (S.data.dev_requests || []).filter((x) => x.status === '접수').length : 0,
+    collab: ['admin', 'logistics'].includes(S.me?.role) ? (S.data.collab_requests || []).filter((x) => x.status === '요청').length : 0,
   };
   $('#nav').innerHTML = ROUTES.filter((x) => !x.hidden && (!x.admin || can.admin())).map((x) => `
     <a href="#/${x.name}" class="nav-item ${r === x.name ? 'active' : ''}">
@@ -279,6 +281,7 @@ function openNotifications() {
     m.close();
     if (b.dataset.type === 'product') openProduct(b.dataset.eid);
     else if (b.dataset.type === 'dev') openDevRequest(b.dataset.eid);
+    else if (b.dataset.type === 'collab') openCollab(b.dataset.eid);
     else openDetail(b.dataset.type, b.dataset.eid);
   }));
 }
@@ -303,6 +306,7 @@ function route() {
     history.replaceState(null, '', `#/${r.name}`);
     if (type === 'product') openProduct(id);
     else if (type === 'dev') openDevRequest(id);
+    else if (type === 'collab') openCollab(id);
     else if (KINDS[type]) openDetail(type, id);
   }
 }

@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, shootRetailName, shootOnlineName, shootColors, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611231028';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611231028';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611231028';
-import { openRequestForm, openProductForm } from './forms.js?v=202611231028';
-import { launchSummary, progCell, histText } from './views.js?v=202611231028';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611231105';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611231105';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611231105';
+import { openRequestForm, openProductForm } from './forms.js?v=202611231105';
+import { launchSummary, progCell, histText } from './views.js?v=202611231105';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 
@@ -245,7 +245,7 @@ export function commentsBlock(entity, id, { allowCorrection = false } = {}) {
         <p>${commentHtml(c)}</p>
       </div>`).join('') || '<p class="muted small">아직 댓글이 없습니다.</p>'}</div>
     <form class="comment-form">
-      <div class="mention-wrap"><textarea class="input" name="body" rows="2" placeholder="${entity === 'dev' ? '추가 설명이나 질문을 남겨 주세요.' : '요청 부서·디자인팀에 남길 내용을 입력하세요.'} @를 입력하면 사람이나 팀을 멘션할 수 있습니다." required></textarea></div>
+      <div class="mention-wrap"><textarea class="input" name="body" rows="2" placeholder="${entity === 'dev' || entity === 'collab' ? '추가 설명이나 질문을 남겨 주세요.' : '요청 부서·디자인팀에 남길 내용을 입력하세요.'} @를 입력하면 사람이나 팀을 멘션할 수 있습니다." required></textarea></div>
       <div class="row gap">
         ${allowCorrection ? '<label class="check"><input type="checkbox" name="correction"><span>제품 정보 수정 요청으로 등록 (물류/발주팀 알림)</span></label>' : ''}
         <div class="grow"></div><button class="btn btn-primary btn-sm">등록</button></div>
