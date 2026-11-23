@@ -1047,7 +1047,7 @@ begin
   if tg_op = 'INSERT' then
     if auth.uid() is not null then
       new.requester_id := auth.uid();
-      if not proc then new.status := '요청'; new.assignee_ids := '{}'; new.response := null; end if;
+      if not proc then new.status := '요청'; new.response := null; end if;
     end if;
     new.assignee_ids := coalesce(new.assignee_ids, '{}');
     new.status_changed_at := now();
@@ -1063,9 +1063,8 @@ begin
     if old.requester_id <> auth.uid() then
       raise exception '본인이 등록한 요청만 수정할 수 있습니다.';
     end if;
-    if new.status is distinct from old.status or new.assignee_ids is distinct from old.assignee_ids
-       or new.response is distinct from old.response then
-      raise exception '진행 상태·담당자·답변은 물류/발주팀만 변경할 수 있습니다.';
+    if new.status is distinct from old.status or new.response is distinct from old.response then
+      raise exception '진행 상태·답변은 물류/발주팀만 변경할 수 있습니다.';
     end if;
     if old.status <> '요청' then
       raise exception '물류/발주팀이 수락한 요청은 수정할 수 없습니다. 변경 사항은 댓글로 남겨 주세요.';
@@ -1091,8 +1090,15 @@ declare
              || coalesce(' ' || to_char(new.time_start, 'HH24:MI'), '');
 begin
   if tg_op = 'INSERT' then
-    insert into public.notifications (target_role, entity_type, entity_id, title, body, actor_id)
-    values ('logistics', 'collab', new.id, '신규 협업 요청 (' || new.purpose || ')', label, auth.uid());
+    if cardinality(new.assignee_ids) > 0 then
+      -- 요청 받는 자에게만
+      insert into public.notifications (target_user, entity_type, entity_id, title, body, actor_id)
+      select distinct u, 'collab', new.id, '협업 요청이 도착했습니다 (' || new.purpose || ')', label, auth.uid()
+        from unnest(new.assignee_ids) u;
+    else
+      insert into public.notifications (target_role, entity_type, entity_id, title, body, actor_id)
+      values ('logistics', 'collab', new.id, '신규 협업 요청 (' || new.purpose || ')', label, auth.uid());
+    end if;
     return new;
   end if;
   if new.status is distinct from old.status then
@@ -1101,9 +1107,11 @@ begin
             case when new.status = '완료' then '협업 요청 완료' else '협업 요청 상태 변경: ' || new.status end,
             label, auth.uid());
   end if;
-  -- 새로 배정된 담당자에게만
+  -- 새로 지정된 요청 받는 자(담당자)에게만
   insert into public.notifications (target_user, entity_type, entity_id, title, body, actor_id)
-  select u, 'collab', new.id, '협업 요청 담당자로 배정됨', label, auth.uid()
+  select u, 'collab', new.id,
+         case when auth.uid() = new.requester_id then '협업 요청이 도착했습니다 (' || new.purpose || ')' else '협업 요청 담당자로 배정됨' end,
+         label, auth.uid()
     from unnest(new.assignee_ids) u
    where not (u = any(coalesce(old.assignee_ids, '{}')));
   if new.response is distinct from old.response and coalesce(trim(new.response), '') <> '' then
