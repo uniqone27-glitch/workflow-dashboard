@@ -1,6 +1,6 @@
 // 공유 상태, 조회 헬퍼, 권한 판별
-import { KINDS, PRIORITY_RANK, CATEGORIES, ROLES as ROLES_LABEL } from './constants.js?v=202611231257';
-import { today, addDays } from './ui.js?v=202611231257';
+import { KINDS, PRIORITY_RANK, CATEGORIES, ROLES as ROLES_LABEL } from './constants.js?v=202611231559';
+import { today, addDays } from './ui.js?v=202611231559';
 
 export const S = {
   db: null,
@@ -186,7 +186,7 @@ export const can = {
   attach: (entity, kind) => {
     const r = role();
     if (r === 'admin') return true;
-    if (entity === 'dev') return kind === 'file';
+    if (entity === 'dev' || entity === 'collab') return kind === 'file';
     if (kind === 'result') return r === 'design';
     if (entity === 'product' || entity === 'package') return r === 'logistics';
     if (entity === 'shoot') return r === 'brand' || r === 'design';

@@ -1,9 +1,9 @@
 import { S, can, findRequest, product, pname, productImages, attachmentsOf, profileName, assigneesOf, assigneeNames, shootRetailName, shootOnlineName, shootColors, requestDept, brandName, launchOf, designers,
-  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611231257';
-import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611231257';
-import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611231257';
-import { openRequestForm, openProductForm } from './forms.js?v=202611231257';
-import { launchSummary, progCell, histText } from './views.js?v=202611231257';
+  requestTitle, requestType, requests, isOverdue, ensureUrls, loadTable } from './store.js?v=202611231559';
+import { KINDS, ROLES, STATUSES, NEED_STATES, LAUNCH_STATES, COMMON_SPECS, CATEGORY_SPECS, FIELD_LABELS, specLabel, OPTION_FIELDS, optionLabel } from './constants.js?v=202611231559';
+import { $, $$, esc, fmtDate, fmtDateTime, timeAgo, linkify, nl, statusPill, priorityTag, toast, errMsg, options, confirmBox, fileSize, readForm } from './ui.js?v=202611231559';
+import { openRequestForm, openProductForm } from './forms.js?v=202611231559';
+import { launchSummary, progCell, histText } from './views.js?v=202611231559';
 
 const panels = [];   // 열린 상세 패널 목록 (실시간 갱신 대상)
 

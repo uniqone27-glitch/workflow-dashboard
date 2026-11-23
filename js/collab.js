@@ -1,8 +1,8 @@
 // 02 협업 요청: 촬영·기타 업무를 위해 물류/발주팀 구성원에게 시간 협업을 요청
-import { S, can, profileName, loadTable } from './store.js?v=202611231257';
-import { ROLES } from './constants.js?v=202611231257';
-import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce, today } from './ui.js?v=202611231257';
-import { openDrawer, findPanel, commentsBlock, bindComments } from './detail.js?v=202611231257';
+import { S, can, profileName, loadTable, attachmentsOf, ensureUrls } from './store.js?v=202611231559';
+import { ROLES } from './constants.js?v=202611231559';
+import { $, $$, esc, fmtDate, fmtDateTime, nl, toast, errMsg, options, confirmBox, openModal, debounce, today } from './ui.js?v=202611231559';
+import { openDrawer, findPanel, commentsBlock, bindComments, attachmentBlock, bindAttachments, uploadFiles, isImage } from './detail.js?v=202611231559';
 
 export const COLLAB_PURPOSES = ['촬영 지원', '제품 세팅·이동', '입고·검수 지원', '샘플 확인', '기타'];
 export const COLLAB_STATUSES = ['요청', '수락', '완료', '반려'];
@@ -86,6 +86,7 @@ export function collabView(route, el) {
 export function openCollabForm(edit = null) {
   const r = edit || { purpose: '', req_date: '', location: '' };
   const wid = edit ? edit.requester_id : S.me.id;
+  let files = [];
   const m = openModal(`
     <form class="dev-form collab-form" novalidate>
       <div class="modal-head"><h2>${edit ? `협업 요청 수정 <span class="muted mono small">${esc(edit.code || '')}</span>` : '협업 요청하기'}</h2><button type="button" class="icon-btn" data-close>✕</button></div>
@@ -103,12 +104,20 @@ export function openCollabForm(edit = null) {
           <datalist id="collab-places">${PLACES.map((p) => `<option value="${esc(p)}">`).join('')}</datalist></label>
         <div class="field wide"><span>요청 받는 자 <small class="muted">물류/발주팀에서 여러 명 선택 가능 · 선택한 사람에게만 알림 (선택하지 않으면 물류/발주팀 전체)</small></span>
           <div class="checks assignee-pick">${logisticsMembers(r.assignee_ids || []).map(([pid, name]) => `<label class="check"><input type="checkbox" data-recipient value="${esc(pid)}" ${(r.assignee_ids || []).includes(pid) ? 'checked' : ''}><span>${esc(name)}</span></label>`).join('') || '<span class="muted small">물류/발주팀 구성원이 없습니다.</span>'}</div></div>
+        <div class="field wide"><span>파일 첨부 <small class="muted">촬영 제품 리스트 등 지원하는 분이 확인할 자료 · 여러 개 가능${edit ? ' · 기존 파일은 상세 화면에서 확인·삭제' : ''}</small></span>
+          <label class="dropzone"><input type="file" multiple data-collab-files><span>파일 선택 (여러 개 가능)</span></label><div class="file-list" data-collab-list></div></div>
       </div></div>
       <div class="modal-foot"><span class="muted small">${edit ? '' : '등록하면 요청 받는 자(선택하지 않으면 물류/발주팀 전체)에게 알림이 갑니다.'}</span><div class="grow"></div>
         <button type="button" class="btn" data-close>취소</button><button class="btn btn-primary">${edit ? '저장' : '요청 등록'}</button></div>
     </form>`, { wide: true });
   const form = $('form', m.el);
   form.addEventListener('input', () => form.classList.add('dirty'));
+  const drawFiles = () => {
+    const box = $('[data-collab-list]', form);
+    box.innerHTML = files.map((fl, i) => `<span class="file-chip">${esc(fl.name)}<button type="button" class="chip-x" data-rm="${i}" title="삭제">✕</button></span>`).join('');
+    $$('[data-rm]', box).forEach((b) => b.addEventListener('click', () => { files.splice(+b.dataset.rm, 1); drawFiles(); }));
+  };
+  $('[data-collab-files]', form).addEventListener('change', (e) => { files = files.concat([...e.target.files]); e.target.value = ''; drawFiles(); });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const v = {
@@ -126,10 +135,14 @@ export function openCollabForm(edit = null) {
     try {
       if (edit) {
         await S.db.update('collab_requests', { id: edit.id }, v);
+        if (files.length) await uploadFiles('collab', edit.id, 'file', files);
         await loadTable('collab_requests');
         toast('저장했습니다.');
       } else {
         const [row] = await S.db.insert('collab_requests', v);
+        if (files.length) {
+          try { await uploadFiles('collab', row.id, 'file', files); } catch (err) { toast(`요청은 등록됐지만 파일 업로드에 실패했습니다. 상세 화면에서 다시 첨부해 주세요. (${errMsg(err)})`, 'error'); }
+        }
         await loadTable('collab_requests');
         toast('협업 요청을 등록했습니다. 물류/발주팀에 알림이 갑니다.');
         form.classList.remove('dirty');
@@ -188,6 +201,7 @@ function renderCollab(panel, id) {
         <div><dt>요청 받는 자</dt><dd>${esc(assigneeText(r) || '물류/발주팀 전체')}</dd></div>
         <div class="wide"><dt>협업 이유</dt><dd>${nl(r.reason)}</dd></div>
       </dl>
+      ${attachmentBlock('collab', id, ['file'], { title: '첨부 파일 (촬영 제품 리스트 등)', uploadKind: r.requester_id === S.me.id || proc ? 'file' : null })}
     </section>
 
     <section class="section work">
@@ -214,8 +228,12 @@ function renderCollab(panel, id) {
   $('[data-del]', el)?.addEventListener('click', async () => {
     if (!(await confirmBox(`${r.code || ''} 협업 요청을 삭제합니다. 되돌릴 수 없습니다.`, { danger: true, ok: '삭제' }))) return;
     try {
+      for (const a of attachmentsOf('collab', id).filter((a) => a.uploaded_by === S.me.id || can.admin())) {
+        await S.db.remove('attachments', { id: a.id }).catch(() => {});
+        await S.db.removeFile(a.storage_path).catch(() => {});
+      }
       await S.db.remove('collab_requests', { id });
-      await loadTable('collab_requests');
+      await Promise.all(['collab_requests', 'attachments'].map(loadTable));
       toast('삭제했습니다.');
       panel.close();
       S.hooks.rerender();
@@ -246,4 +264,7 @@ function renderCollab(panel, id) {
     });
   }
   bindComments(el, rerender);
+  bindAttachments(el, rerender);
+  const imgs = attachmentsOf('collab', id).filter(isImage).map((a) => a.storage_path).filter((p) => !S.urls[p]);
+  if (imgs.length) ensureUrls(imgs).then(rerender);
 }
